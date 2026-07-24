@@ -151,7 +151,7 @@ Catches:  a route parameter failing to take precedence over a query or body
           clone losing already-decoded body parameters.
 Produces: t/unit/core/request.t
 Branch:   ovid/test-roadmap
-Landed:   2026-07-24 3139f55 (drop a state transition; negate a condition;
+Landed:   2026-07-24 a3f584c (drop a state transition; negate a condition;
           alter a constant)
 ## Phase 6: Response encoding and PSGI conversion
 
@@ -164,8 +164,10 @@ Catches:  text content being character-encoded twice; a charset being
           reaching the PSGI array unsanitised (a response-splitting hole).
 Produces: t/unit/core/response.t
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F6 (content assigned twice is never encoded),
+          F7 (CRLF survives in a header name)
+Landed:   2026-07-24 dc55ded (drop a state transition; negate a condition;
+          off-by-one a boundary; alter a constant)
 ## Phase 7: Serializer round-trip and failure handling
 
 Tier:     integration
@@ -178,8 +180,9 @@ Catches:  a malformed JSON request body returning 500 instead of 400; a
           being run through the deserializer.
 Produces: t/integration/serializer/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F3 (Accept decides the outgoing format, against the docs),
+          F8 (a charset parameter defeats the Mutable format lookup)
+Landed:   2026-07-24 b70a10b (alter a constant; drop a state transition)
 ## Phase 8: Error rendering and sensitive-value censoring
 
 Tier:     integration
@@ -192,8 +195,7 @@ Catches:  a stack trace appearing on a 4xx response when `show_stacktrace` is
           rendered unescaped into the error page.
 Produces: t/integration/error/
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 aa971d0 (alter a constant; drop a state transition)
 ## Phase 9: Hook chain and hook exception handling
 
 Tier:     integration
@@ -206,8 +208,10 @@ Catches:  a `before` hook that dies producing a 500 without firing the
           exists being dropped instead of applied when the engine is built.
 Produces: t/integration/hooks/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F9 (a halting hook_exception handler lets the route run),
+          F10 (to_app recompiles hooks, duplicating exception reports)
+Landed:   2026-07-24 cffead3 (flip a comparison; alter a constant;
+          negate a condition; drop a state transition)
 ## Phase 10: Template rendering, layout, and default tokens
 
 Tier:     integration
@@ -220,8 +224,9 @@ Catches:  `layout => 0` in the options failing to suppress the layout, or a
           directory as if it were a page.
 Produces: t/integration/template/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F11 (the AutoPage layout guard is case-sensitive)
+Landed:   2026-07-24 4776346 (alter a constant; negate a condition;
+          drop a state transition; off-by-one a boundary)
 ## Phase 11: Configuration loading, merging, and strict-key warnings
 
 Tier:     unit

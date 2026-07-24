@@ -267,8 +267,9 @@ Catches:  a message below the configured level still being emitted (or one at
           `%{Header}h` lookup failing to read the named request header.
 Produces: t/unit/logger/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F2 (%D is documented as a log format code but not implemented)
+Landed:   2026-07-24 0036308 (flip a comparison; alter a constant;
+          drop a state transition; negate a condition)
 ## Phase 14: Multi-app dispatch and URL generation
 
 Tier:     integration

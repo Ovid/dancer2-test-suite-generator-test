@@ -119,7 +119,10 @@ Catches:  `send_file` with a `../../` path escaping the public directory and
           `Content-Disposition` filename.
 Produces: t/integration/handler/file.t
 Branch:   ovid/test-roadmap
-Landed:
+Findings: F4 (Handler::File serves files outside public_dir),
+          F5 (NUL in a static path warns and 404s on one code path, 400s on the
+          other)
+Landed:   2026-07-24 78b5e6f (negate a condition; alter a constant)
 
 ## Phase 4: Session lifecycle and cookie header
 

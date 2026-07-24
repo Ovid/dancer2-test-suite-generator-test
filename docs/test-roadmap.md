@@ -151,8 +151,8 @@ Catches:  a route parameter failing to take precedence over a query or body
           clone losing already-decoded body parameters.
 Produces: t/unit/core/request.t
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 3139f55 (drop a state transition; negate a condition;
+          alter a constant)
 ## Phase 6: Response encoding and PSGI conversion
 
 Tier:     unit

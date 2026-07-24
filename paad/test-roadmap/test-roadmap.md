@@ -282,7 +282,8 @@ Catches:  a request that no route in the first app matches never being
           than refusing; a mounted app's `uri_for` dropping its mount path.
 Produces: t/integration/dispatch/multiapp.t
 Branch:   ovid/test-roadmap
-Landed:
+Findings: F1 (uri_for_route refuses a route parameter whose value is 0)
+Landed:   PENDING
 
 ## Phase 15: The `dancer2 gen` scaffold produces a working application
 

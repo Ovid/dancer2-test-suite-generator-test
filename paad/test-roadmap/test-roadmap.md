@@ -195,8 +195,7 @@ Catches:  a stack trace appearing on a 4xx response when `show_stacktrace` is
           rendered unescaped into the error page.
 Produces: t/integration/error/
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 aa971d0 (alter a constant; drop a state transition)
 ## Phase 9: Hook chain and hook exception handling
 
 Tier:     integration

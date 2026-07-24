@@ -254,8 +254,8 @@ Catches:  `expires => '2 hours'` emitting the literal string instead of a GMT
           emitting `HttpOnly`.
 Produces: t/unit/core/cookie.t
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 c91c647 (negate a condition; drop a state transition;
+          alter a constant; flip a comparison)
 ## Phase 13: Logger level filtering and message formatting
 
 Tier:     unit

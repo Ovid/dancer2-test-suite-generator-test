@@ -236,3 +236,80 @@ Pinned by:   Phase 7 — the subtest "a charset parameter on Content-Type breaks
              the 400, the silent JSON fallback on `Accept`, and the control case
              that works without the parameter. Normalising the lookup turns it
              red; that red is the fix.
+
+## F9 — A halting `on_hook_exception` handler lets the refused route run anyway
+
+Where:       lib/Dancer2/Core/App.pm:1335-1347
+Behavior:    Given a `before` hook that dies and an `on_hook_exception` handler
+             that sets a response and calls `is_halted(1)`, the request produces
+             this sequence:
+
+                 before -> hook_exception(core.app.before_request)
+                        -> the route body runs
+                        -> hook_exception(core.app.after_request)
+
+             The route the `before` hook had just refused is executed. Any side
+             effect it has — a charge, an insert, an email — happens.
+             The mechanism: the wrapper captures `is_halted` at line 1335, then
+             calls `$app->cleanup` at 1341, which clears the request, the
+             response and the session (lib/Dancer2/Core/App.pm:945-956). It then
+             returns without croaking because the handler halted. Dispatch
+             resumes in `_dispatch_route`, reads `$self->response` — now a fresh,
+             unhalted object — sees nothing halted, and runs the route. The
+             `core.app.after_request` hook then dies on
+             `$self->request->cookies` (lib/Dancer2/Core/App.pm:1436) because
+             `cleanup` destroyed the request, which is what fires the exception
+             handler a second time. The 418 the client finally receives comes
+             from that second firing, not the first.
+Contradicts: the wrapper's own comment at lib/Dancer2/Core/App.pm:1343-1347 —
+             "Allow the hook function to halt the response, thus retaining any
+             response it may have set" — states that halting in the handler is a
+             supported way to keep a custom response. The `cleanup` call six
+             lines earlier destroys the state that would make it work, so the
+             documented capability cannot function as described. The captured-
+             before-cleanup `$is_halted` at line 1335 shows the author was aware
+             the two interact.
+Action:      decide what `cleanup` is for on this path. It exists to release
+             per-request state, but here it runs mid-request. Either skip it when
+             the response was halted (the halt means "this response is final",
+             so dispatch should return it rather than continue), or have
+             `_dispatch_route` treat a hook that returned after halting as
+             terminal instead of re-reading `$self->response`.
+Pinned by:   Phase 9 — the subtest "a halting hook_exception handler lets the
+             route run anyway (known bug)" in t/integration/hooks/chain.t pins
+             the full four-step sequence, including the route running and the
+             second exception. Fixing this turns that subtest red; the corrected
+             expectation is that the route never runs and the handler fires once.
+
+## F10 — `to_app` recompiles the hook wrappers, so a dying hook reports once per call
+
+Where:       lib/Dancer2/Core/App.pm:1313-1358 (`compile_hooks`), reached from
+             `finish` at lib/Dancer2/Core/App.pm:1270
+Behavior:    `compile_hooks` wraps each registered hook and writes the wrappers
+             back with `replace_hook`, so calling `to_app` a second time on the
+             same app wraps the already-wrapped hooks again. On the success path
+             this is invisible — the innermost wrapper runs the hook once. On the
+             failure path each layer treats the inner layer's croak as a fresh
+             hook failure and fires `core.app.hook_exception` itself. Measured
+             with one dying `before` hook: `on_hook_exception` fires 1, 2, then 3
+             times after the first, second and third `to_app` call.
+Contradicts: the wrapper carries an explicit guard against reporting the same
+             failure twice — lib/Dancer2/Core/App.pm:1329-1334, "Don't execute
+             the hook_exception hook if the exception has been generated from a
+             hook exception handler itself, thus preventing potentially recursive
+             code". That states the single-fire invariant, but only considers
+             recursion through the handler, not a second layer of wrapping. The
+             `replace_hook` it relies on is documented in
+             lib/Dancer2/Core/Role/Hookable.pm as replacing the hook list, which
+             it does — with wrappers around the previous wrappers.
+Action:      make the compile idempotent. Either guard `finish` with a flag so a
+             second call is a no-op, or have `compile_hooks` build its wrappers
+             from a preserved list of the original hooks rather than from
+             `hooks` in place.
+Pinned by:   Phase 9 — the subtest "to_app compiles the hooks again every time
+             (known bug)" in t/integration/hooks/chain.t asserts the 1, 2, 3
+             progression. Making the compile idempotent turns it red; the
+             corrected expectation is 1, 1, 1. Note this also affects test
+             authoring: every app in that file builds its PSGI coderef once for
+             this reason, and a suite that calls `to_app` per test would see
+             inflated exception counts.

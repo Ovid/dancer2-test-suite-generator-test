@@ -283,7 +283,7 @@ Catches:  a request that no route in the first app matches never being
 Produces: t/integration/dispatch/multiapp.t
 Branch:   ovid/test-roadmap
 Findings: F1 (uri_for_route refuses a route parameter whose value is 0)
-Landed:   PENDING
+Landed:   2026-07-24 b5bfab6 (drop a state transition x3; alter a constant x2)
 
 ## Phase 15: The `dancer2 gen` scaffold produces a working application
 

@@ -301,4 +301,5 @@ Findings: F12 (the generated directory keeps the :: from -a),
           F13 (MANIFEST.SKIP is appended an absolute path pattern),
           F14 (the skeleton's environments/ configs are git-ignored and absent
           from a fresh clone)
-Landed:   PENDING
+Landed:   2026-07-24 b2e6268 (alter a constant x2; drop a state transition;
+          skeleton file deleted)

@@ -89,7 +89,8 @@ Catches:  a `:token` capturing across a `/` so `/user/:id` matches
           reject a non-matching request.
 Produces: t/unit/core/route.t
 Branch:   ovid/test-roadmap
-Landed:
+Landed:   2026-07-24 bb2689e (alter a constant; negate a condition; drop a
+          state transition; flip a comparison)
 
 ## Phase 2: Dispatch flow control — pass, halt, forward, redirect
 

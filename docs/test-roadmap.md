@@ -104,7 +104,8 @@ Catches:  `pass` leaking the first route's content or its leftover `splat`
           HTTP verb returning something other than 405.
 Produces: t/integration/dispatch/flow.t
 Branch:   ovid/test-roadmap
-Landed:
+Landed:   2026-07-24 24e4afa (negate a condition; drop a state transition;
+          alter a constant)
 
 ## Phase 3: File serving and path containment
 

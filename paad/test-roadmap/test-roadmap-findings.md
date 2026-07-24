@@ -313,3 +313,45 @@ Pinned by:   Phase 9 — the subtest "to_app compiles the hooks again every time
              authoring: every app in that file builds its PSGI coderef once for
              this reason, and a suite that calls `to_app` per test would see
              inflated exception counts.
+
+## F11 — The AutoPage layout guard is case-sensitive, so a layout can be served as a page
+
+Where:       lib/Dancer2/Handler/AutoPage.pm:36-40
+Behavior:    With `auto_page: 1` and the default `layout_dir` of `layouts`, a
+             request for `/layouts/main` is correctly passed on and 404s. A
+             request for `/Layouts/main` is answered **200** and renders the
+             layout template as a page. The guard matches the request path
+             against the layout directory name case-sensitively
+             (`$page =~ m{^/\Q$layout_dir\E/}`), so a differently-cased spelling
+             misses it — while the filesystem resolves that spelling to the same
+             file.
+             This depends on the filesystem being case-insensitive, which is the
+             default on macOS (APFS) and Windows (NTFS) and not on most Linux
+             filesystems. The characterization test detects which kind of
+             filesystem it is running on and skips where the bypass cannot apply,
+             so this will not appear on a case-sensitive CI box.
+             Indirect spellings (`/x/../layouts/main`, `/./layouts/main`) are
+             *not* affected — those are refused, because the view lookup does not
+             resolve them.
+Contradicts: the adjacent validation it defeats. The guard at
+             lib/Dancer2/Handler/AutoPage.pm:36-40 exists for no purpose other
+             than keeping layout templates from being served as pages, and the
+             module's own POD describes the handler as "responsible for serving
+             pages that match an existing template" with the layout directory as
+             the carve-out. A path that reaches the same file under a different
+             case satisfies the lookup while evading the carve-out, so the
+             validation does not hold on the platforms where it matters.
+Action:      stop deciding this from the request path's spelling. Resolve the
+             view path first and check that the result is not inside the layout
+             directory — the containment approach `send_file` already uses
+             (`$dir->realpath->subsumes($file_path)`,
+             lib/Dancer2/Core/App.pm:1182) — so the check is about which file was
+             reached rather than how it was spelled. A case-insensitive compare
+             would also close this particular spelling, but would not close the
+             general "same file, different path" shape.
+Pinned by:   Phase 10 — the subtest "the layout guard is case-sensitive (known
+             bug)" in t/integration/template/autopage.t pins the 200 and the
+             rendered layout, guarded by a filesystem check. The companion
+             subtest "a layout cannot be requested as a page" pins the half that
+             works, including the indirect spellings, so a fix that breaks those
+             would be caught too.

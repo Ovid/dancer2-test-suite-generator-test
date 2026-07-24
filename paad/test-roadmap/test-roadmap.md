@@ -208,8 +208,10 @@ Catches:  a `before` hook that dies producing a 500 without firing the
           exists being dropped instead of applied when the engine is built.
 Produces: t/integration/hooks/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F9 (a halting hook_exception handler lets the route run),
+          F10 (to_app recompiles hooks, duplicating exception reports)
+Landed:   2026-07-24 cffead3 (flip a comparison; alter a constant;
+          negate a condition; drop a state transition)
 ## Phase 10: Template rendering, layout, and default tokens
 
 Tier:     integration

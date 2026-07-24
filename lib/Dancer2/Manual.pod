@@ -1,0 +1,2585 @@
+# ABSTRACT: A guide to building web applications with Dancer2
+
+package Dancer2::Manual;
+
+=pod
+
+=encoding utf8
+
+=head1 Introduction to Dancer2: Managing Danceyland
+
+Welcome to Danceyland! As the new manager of this amazing park, you'll
+be maintaining and enhancing the experience for all your visitors.
+Imagine each attraction, food stall, and ticket booth as different
+locations in your web application. Let's explore how to manage these
+various components using Dancer2.
+
+If you're not sure if you're at the correct spot in the park, the L<documentation map|Dancer2/Documentation Index>
+can help you find your way.
+
+=head2 What is Dancer2?
+
+Dancer2 is a free and open-source web application framework written in
+Perl. It’s a complete rewrite of the original L<Dancer>, designed to be
+powerful and flexible, yet incredibly easy to use.
+
+With Dancer2, getting your web app up and running is a breeze. It
+boasts a rich ecosystem of adapters for popular template engines,
+session storage solutions, logging methods, serializers, and plugins.
+This means you can build your app your way, effortlessly. In this
+guide, we'll leverage those strengths to build and manage Danceyland.
+
+Before we learn the ins and outs of managing your park, make sure you
+head over to the L<quick start guide|Dancer2::Manual::QuickStart> and
+get your development machine set up with Dancer2. Once it's installed,
+make sure to build your park:
+
+    dancer2 gen -a Danceyland
+
+=head1 Routes: Different Attractions and Facilities
+
+Core to Dancer2 is the concept of routes. Each attraction in your theme
+park is like a route in your web application. Visitors (users) can
+navigate to different attractions, just as they would visit different
+routes in your app.
+
+Let's show some of the rides and facilities in our park:
+
+    # Defining routes for our theme park
+    get '/' => sub {
+        return "Welcome to Danceyland!";
+    };
+
+    get '/roller-coaster' => sub {
+        return "Enjoy the thrilling roller coaster ride!";
+    };
+
+    post '/buy-ticket' => sub {
+        my $ticket = body_parameters->get('ticket');
+        # Do something with ticket data
+        return "You bought a $ticket ticket!";
+    };
+
+=over
+
+=item The `/` route is like the main entrance to our theme park. Visitors are greeted with a welcome message.
+
+=item The `/roller-coaster` route is a thrilling ride. When visitors take this path, they get a special message.
+
+=item The `/buy-ticket` route is the ticket booth. Visitors buy their tickets here.
+
+=back
+
+=head2 New Keywords
+
+=over
+
+=item get
+
+This keyword defines a route that responds to HTTP GET requests. It
+takes two parameters: the route path and a subroutine that defines
+the response.
+
+    get '/path' => sub {
+        return "Response text";
+    };
+
+Note that a route to match C<HEAD> requests is automatically created when
+you create a C<GET> route.
+
+=item post
+
+This keyword defines a route that responds to HTTP POST requests. It
+works similarly to C<get>, but is used for actions like submitting forms
+or buying tickets.
+
+    post '/path' => sub {
+        my $param = body_parameters->get('param');
+        return "You submitted: $param";
+    };
+
+=back
+
+So exactly what are these HTTP requests, and what are they all about?
+
+=head2 HTTP Methods: Visitor Actions
+
+Think of HTTP methods as the different actions visitors can take in
+your theme park. Entering the park, buying tickets, updating ticket
+details, and leaving the park are all actions represented by C<GET>,
+C<POST>, C<PUT>, C<DEL>, C<OPTIONS>, and C<PATCH> methods respectively.
+
+Handling visitor actions in the park:
+
+    # Defining HTTP methods for visitor actions
+    get '/' => sub {
+        return "Welcome to Danceyland!";
+    };
+
+    post '/buy-ticket' => sub {
+        my $ticket = body_parameters->get('ticket');
+        return "You bought a $ticket ticket!";
+    };
+
+    put '/update-ticket' => sub {
+        my $new_ticket = body_parameters->get('new_ticket');
+        return "Your ticket has been updated to $new_ticket!";
+    };
+
+    del '/leave-park' => sub {
+        return "Thank you for visiting! Please come again!";
+    };
+
+    options '/park/info' => sub {
+        return "Allowed methods: GET, POST, PUT";
+    };
+
+    patch '/profile/:id' => sub {
+        my $user_id = route_parameters->get('id');
+        my $new_email = body_parameters->get('email');
+        return "Updated profile for user $user_id with email $new_email";
+    };
+
+=over
+
+=item GET: Visitors enter the park and see a welcome message.
+
+=item POST: Visitors buy a ticket.
+
+=item PUT: Visitors update their ticket details.
+
+=item DELETE: Visitors leave the park.
+
+=item PATCH: Update part of a visitor's profile (in this case, email).
+
+=item OPTIONS: Describing the available operations on a specific route.
+
+Keep in mind, you would rarely implement this in your web application.
+
+=back
+
+These are good conventions to follow, but you can make your route
+handlers do whatever makes the most sense for your application.
+
+=head2 Routes, Route Definitions, and Route Handlers
+
+You may hear other Dancer developers talk about "routes",
+"route definitions", and "route handlers". "Route definitions" refers to
+the HTTP method and URL to respond to, while "route handler" is only the
+code implementing functionality for that definition. The two of these
+together make what's known as a route.
+
+    get '/' => sub {...};
+
+=over
+
+=item The verb, path, and subroutine is a route definition (AKA "route").
+
+=item Only the subroutine reference (C<sub {...}>) is the route handler.
+
+=item The route definition I<and> the route handler collectively are the route.
+
+=back
+
+Each route requires a defintion and handler. The route needs to either return
+a string or Perl data structure to be rendered for the client. We'll learn
+more about rendering data structures later in our guide to Danceyland; for
+now, we're going to focus on returning strings, which will be rendered as
+HTML.
+
+=head3 What if we want a single park location to respond to multiple request types?
+
+Route definitions can use C<any> to match all, or a specified list of HTTP methods.
+
+The following will match any HTTP request to the path C</visitor-center>:
+
+    any '/visitor-center' => sub {
+        # Write code to do something at the visitor center!
+    }
+
+The following will match GET or POST requests to C</visitor-center>:
+
+    any ['get', 'post'] => '/visitor-center' => sub {
+        # Write code to do something at the visitor center!
+    };
+
+=head2 URI Generation
+
+Dancer2 can generate URIs using the C<uri_for> and C<uri_for_route>
+keywords. Letting Dancer2 generate URIs helps ensure consistency, and
+reduces the amount of maintenance needed by making sure URIs are always
+up to date as the application evolves over time.
+
+=head3 uri_for
+
+The C<uri_for> keyword is used to generate a URI for a given path within
+your application, including query parameters. It's especially useful
+when you want to construct URLs dynamically inside your routes.
+
+=head4 Example: Generating a URI in Danceyland
+
+    get '/ride/:name' => sub {
+        my $ride_name = route_parameters->get('name');
+        return 'Enjoy the ride at ' . uri_for("/ride/$ride_name");
+    };
+
+In this example, C<uri_for> generates a full URI for the ride name in
+Danceyland.
+
+=head3 uri_for_route
+
+The C<uri_for_route> keyword creates a URL for a named route. In
+Danceyland, it can be used to generate a URL to any part of the park
+that has a named route.
+
+For more information, see L<Dancer2::Manual::Keywords/uri_for_route>.
+
+=head3 Example 1: Basic Usage
+
+    get 'films' => '/cinemaland/film-gallery' => sub {
+        return "See the films at " . uri_for_route('films');
+    };
+
+In this example, the route is named C<animals>, and C<uri_for_route>
+generates a URL pointing to it.
+
+=head3 Example 2: Using Route Parameters
+
+    get 'ride' => '/ride/:name' => sub {
+        my $ride_name = route_parameters->get('name');
+        return "Ride details: " . uri_for_route('ride', { name => $ride_name });
+    };
+
+This example uses C<uri_for_route> to generate a URL that includes the
+named route parameter C<name>.
+
+=head3 Example 3: Including Query Parameters
+
+    get 'search' => '/search' => sub {
+        return uri_for_route('search', { q => 'roller coaster' });
+    };
+
+    get '/search' => sub {
+        my $query = query_parameters->get('q');
+        return "Search results for: $query";
+    };
+
+In this example, C<uri_for_route> generates a URL for the named route
+C<search> with the query parameter C<q> set to "roller coaster".
+
+=head2 Parameter Handling
+
+In Danceyland, visitors will often need to communicate with park staff.
+Similarly, your apps will need to take in information from application
+users via parameters. Dancer2 provides several methods for handling
+different types of parameters.
+
+=head3 Keywords for working with parameters
+
+=head4 param and params (Not Recommended)
+
+The C<param> and C<params> keywords are legacy methods to access request
+parameters. While still functional, they are not recommended for new
+applications. Instead, you should use the more specific keywords like
+C<route_parameters>, C<query_parameters>, and C<body_parameters> for
+clarity and precision.
+
+=head4 Example: Using param (Not Recommended)
+
+    get '/submit' => sub {
+        # Please use query_parameters() shown below
+        my $name = param('name');
+        return "Submitted name: $name";
+    };
+
+=head4 Example: Using params (Not Recommended)
+
+    get '/all-params' => sub {
+        # Pleaase use query_parameters() shown below
+        my %all_params = params;
+        return "All parameters: " . join(', ', %all_params);
+    };
+
+C<param> and C<params> are included here for completeness but are not the
+preferred methods for handling parameters in Danceyland.
+
+=head4 body_parameters
+
+This keyword retrieves parameters from the body of the request, typically
+used in POST requests.
+
+Example of C<body_parameters> with multiple values:
+
+    post '/submit' => sub {
+        my $name  = body_parameters->get('name');
+        my $email = body_parameters->get('email');
+        return "Submitted name: $name, email: $email";
+    };
+
+=head4 query_parameters
+
+This keyword retrieves parameters from the query string of the request
+URL:
+
+    # Matches URL: /search?q=rides&cat=thrill
+    get '/search' => sub {
+        my $query    = query_parameters->get('q');
+        my $category = query_parameters->get('cat');
+        return "Search query: $query in category: $category";
+    };
+
+The above route would match the URL C</search?q=rides&cat=thrill>.
+
+=head4 route_parameters
+
+This keyword retrieves named parameters from the route declaration:
+
+    # Matches URL: /user/123
+    get '/user/:id' => sub {
+        my $user_id = route_parameters->get('id');
+        return "User ID: $user_id";
+    };
+
+=head4 get_all
+
+This method works for all of the above parameter-fetching keywords. If
+you have a parameter that may contain more than one value, C<get_all>
+will return an array reference containing all selected values, even if
+there is only a single value returned.
+
+Example of C<get_all>:
+
+    # Matches URL: /all-params?name=John&age=30
+    get '/all-params' => sub {
+        my $params = query_parameters->get_all();
+        return "All query parameters: " . join(', ', %$params);
+    };
+
+=head3 Named Route Parameters
+
+Named route parameters allow you to capture specific segments of the URL
+and use them in your route handler:
+
+    # Matches URL: /ride/roller-coaster
+    get '/ride/:name' => sub {
+        my $ride_name = route_parameters->get('name');
+        return "Welcome to the $ride_name ride!";
+    };
+
+Named route parameters are retrieved with the L</route_parameters>
+keyword.
+
+=head3 Wildcard Route Parameters
+
+Wildcard route parameters allow you to capture arbitrary parts of the URL.
+There are two types: C<splat> and C<megasplat>. C<splat> is represented by
+a single asterisk (C<*>), and megaspat is represented by a double asterisk
+(C<**>).
+
+Examples of wildcard route parameters include:
+
+=over
+
+=item splat: Captures one segment of the URL
+
+    # Matches URL: /files/document.txt
+    get '/files/*' => sub {
+        my ($file) = splat;
+        return "You requested the file: $file";
+    };
+
+=item megasplat: Captures multiple segments of the URL
+
+    # Matches URL: /files/documents/reports/2023/summary.txt
+    get '/files/**' => sub {
+        my @files = splat;
+        return "You requested the files: " . join(', ', @files);
+    };
+
+=back
+
+=head3 Combining named and wildcard parameters
+
+You can combine named and wildcard parameters in your routes to capture
+both specific and arbitrary segments of the URL.
+
+Example combining named and wildcard parameters:
+
+    # Matches URL: /user/123/files/documents/reports/2023/summary.txt
+    get '/user/:id/files/**' => sub {
+        my $user_id = route_parameters->get('id');
+        my @files = splat;
+        return "User ID: $user_id requested the files: " . join(', ', @files);
+    };
+
+=head3 Named parameters with type constraints
+
+Type constraints allow you to enforce specific types for named
+parameters, ensuring that the parameters meet certain criteria.
+
+Dancer2 natively supports named parameters with type constraints
+without needing to rely on external plugins. Here’s how to declare
+and use type constraints for named route parameters in Dancer2:
+
+    use Dancer2;
+
+    get '/ride/:id[Int]' => sub {
+        my $id = route_parameters->get('id');
+        return "Ride ID: $id";
+    };
+
+    get '/guest/:name[Str]' => sub {
+        my $name = route_parameters->get('name');
+        return "Guest Name: $name";
+    };
+
+    MyApp->to_app();
+
+=over 4
+
+=item *
+
+B<Int>: This constraint ensures that the C<id> parameter must be an integer.
+
+=item *
+
+B<Str>: This ensures that the C<name> parameter must be a string.
+
+=back
+
+Note: For more complex parameter types, the C<Dancer2::Plugin::ParamTypes>
+module provides additional constraints and validation for all parameter
+types.
+
+=head3 Wildcard Parameters with Type Constraints
+
+You can also enforce type constraints on wildcard parameters:
+
+    # Matches URL: /images/photo.jpg
+    get '/images/*.*[ArrayRef[Str]]' => sub {
+        my ($filename, $extension) = splat;
+        return "Filename: $filename, Extension: $extension";
+    };
+
+    # Matches URL: /documents/folder/subfolder/file.txt
+    get '/documents/**[ArrayRef[Str]]' => sub {
+        my @path = splat;
+        return "Document path: " . join('/', @path);
+    };
+
+=head3 Regex Route Matching
+
+Regex route matching allows you to define routes using regular
+expressions, providing more flexibility in matching URLs:
+
+    # Matches URL: /product/12345
+    get qr{/product/(\d+)} => sub {
+        my ($product_id) = splat;
+        return "Product ID: $product_id";
+    };
+
+    # Matches URL: /category/electronics
+    get qr{/category/(\w+)} => sub {
+        my ($category_name) = splat;
+        return "Category: $category_name";
+    };
+
+It is also possible to use named captures in regular expressions:
+
+    # Matches URL: /product/12345
+    get qr{/product/(?<product_id>\d+)} => sub {
+        my $product_id = captures->{'product_id'};
+        return "Product ID: $product_id";
+    };
+
+=head3 Combining Examples
+
+    # Matches URL: /item/42/specifications
+    get '/item/:id[Int]/*[ArrayRef[Str]]' => sub {
+        my $item_id = route_parameters->get('id');
+        my ($detail) = splat;
+        return "Item ID: $item_id, Detail: $detail";
+    };
+
+    # Matches URL: /archive/2023/07/10
+    get qr{/archive/(\d{4})/(\d{2})/(\d{2})} => sub {
+        my ($year, $month, $day) = splat;
+        return "Archive for: $year-$month-$day";
+    };
+
+=head2 Organizing routes and growing your app using prefix
+
+The prefix DSL keyword helps you group related routes. For example, you
+can organize all the routes of a given section in Danceyland with the
+C<prefix> keyword as such:
+
+    package MyApp;
+    use Dancer2;
+
+    # Prefix for Cinemaland
+    prefix '/cinemaland' => sub {
+        get '/film-gallery' => sub {
+            return "Welcome to Cinemaland! Here you can learn about famous movies.";
+        };
+
+        get '/movie-schedule' => sub {
+            return "Movie Schedule: 10 AM and 4 PM.";
+        };
+    };
+
+    # Prefix for Actionland
+    prefix '/actionland' => sub {
+        get '/thrill-rides' => sub {
+            return "Welcome to Actionland! Enjoy the thrill rides.";
+        };
+
+        get '/roller-coaster' => sub {
+            return "The best roller coaster in the park!";
+        };
+    };
+
+    MyApp->to_app();
+
+This example organizes routes by grouping all cinema-related activities
+under C</cinemaland> and all rides under C</actionland>.
+
+=head2 Controlling the flow with forward, redirect, and pass
+
+These DSL keywords in Dancer2 allow you to manage the flow of actions
+within your routes. Here’s how they work in Danceyland.
+
+=head3 forward
+
+C<forward> allows you to forward the current request to another route
+handler, as if it were redirected, but without sending a new HTTP request.
+Put another way, a different route than the one requested is processed,
+but the address in the user's browser's bar stays the same.
+
+=head4 Example
+
+    get '/guest-services' => sub {
+        forward '/info';  # Forwards to /info
+    };
+
+    get '/info' => sub {
+        return "Welcome to Guest Services. How can we help you today?";
+    };
+
+In this example, when a visitor goes to C</guest-services>, they are
+forwarded to the C</info> route internally, however, the vistor's browser
+still shows they are in C</guest-services>.
+
+=head3 redirect
+
+C<redirect> sends an HTTP redirect to the client, instructing their
+browser to make a new request to a different URL. At the end of the
+request, the user's browser will show a different URL than the one
+they originally navigated to.
+
+=head4 Example
+
+    get '/old-roller-coaster' => sub {
+        redirect '/new-roller-coaster';
+    };
+
+    get '/new-roller-coaster' => sub {
+        return "Welcome to the new and improved roller coaster!";
+    };
+
+When a visitor requests C</old-roller-coaster>, they are redirected to
+C</new-roller-coaster>. The browser's URL will now show C</new-roller-coaster>.
+
+=head3 pass
+
+C<pass> tells Dancer2 to skip the current route and continue looking for
+the next matching route.
+
+=head4 Example
+
+    get '/vip-area' => sub {
+        if (!session('is_vip')) {
+            pass;  # Skip to the next matching route if the user is not VIP
+        }
+        return "Welcome to the VIP area!";
+    };
+
+    get '/vip-area' => sub {
+        return "Access Denied. This area is for VIPs only.";
+    };
+
+In this example, if the session doesn’t indicate the user is a VIP, the
+request will skip to the next matching route, which denies access.
+
+=head1 Templates: Displaying Information, and More!
+
+Templates in a web application help present information in a structured
+and visually appealing way, much like maps, schedules, and banners in a
+theme park.
+
+=head2 Why do we use templates?
+
+Templates help separate your display logic from your programming logic.
+The same code that sends JSON to satisfy an API quest could also be used
+to display an HTML page containing park information to a user. If the
+code needed to display HTML is intertwined with the code to gather the
+data needed, the code necessary to just produce JSON becomes unnecessarily
+complicated. Templates take the HTML out of your Perl code.
+
+=head2 Views
+
+In Dancer2, "views" refer to the template files that define the structure
+of the content presented to the users. Views are typically HTML files
+with embedded placeholders that are dynamically filled with data when
+rendered.
+
+=head3 How Views Work
+
+Suppose you have a template file called C<views/ride.tt>:
+
+    <h1><% ride_name %> Ride</h1>
+    <p>Enjoy the thrilling <% ride_name %> ride at Danceyland!</p>
+
+You can use this view in your route handler:
+
+    get '/ride/:name' => sub {
+        my $ride_name = route_parameters->get('name');
+        template 'ride' => { ride_name => $ride_name };
+    };
+
+=head3 Example: Displaying a welcome message on a pretty banner
+
+    get '/' => sub {
+        template 'welcome', { message => "Welcome to Danceyland!" };
+    };
+
+In this example, the C</> route uses a template to display a welcome message.
+
+=head3 Example: Displaying the park map
+
+    get '/map' => sub {
+        template 'map', { attractions => \@attractions };
+    };
+
+=head3 Example: Using templates to display various information
+
+    get '/info' => sub {
+        template 'info', {
+            title   => "Park Information",
+            content => "Here you can find all the information about Danceyland.",
+            hours   => "Open from 10 AM to 8 PM",
+            contact => "Call us at 123-456-7890",
+        };
+    };
+
+=over 4
+
+=item *
+
+The C</> route uses a template to display a welcome message.
+
+=item *
+
+The C</map> route uses a template to display the park's map.
+
+=item *
+
+The C</info> route uses a template to display various pieces of information about the park.
+
+=back
+
+=head2 New Keywords
+
+=head3 template
+
+The C<template> keyword renders a template file with the provided data.
+It takes two parameters: the template name and a hash reference of the
+data to pass to the template.
+
+    template 'template_name', { key1 => 'value1', key2 => 'value2' };
+
+=head2 Layouts
+
+Layouts in Dancer2 allow you to wrap views with a common structure, such
+as a header, footer, or navigation bar, that remains consistent across
+Danceyland. A layout is just another template that wraps around your page
+content; it allows you to maintain a consistent look and feel across
+multiple pages while rendering the dynamic content of each page within
+the layout.
+
+=head3 Example: Implementing Layouts in Danceyland
+
+Consider Danceyland having a consistent navigation bar across all sections
+of the site. You can use a layout for this.
+
+    # views/layouts/main.tt
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Danceyland</title>
+    </head>
+    <body>
+        <header>
+            <h1>Welcome to Danceyland</h1>
+            <nav>
+                <a href="/">Home</a>
+                <a href="/cinemaland/film-gallery">Cinemaland</a>
+                <a href="/actionland/thrill-rides">Actionland</a>
+            </nav>
+        </header>
+
+        <section>
+            <% content %>  <!-- This is where the view content gets inserted -->
+        </section>
+
+        <footer>
+            <p>© 2024 Danceyland</p>
+        </footer>
+    </body>
+    </html>
+
+C<content> is a special variable for layouts; it is replaced by the
+output from the C<template> keyword.
+
+=head4 Route Implementation Using the Layout
+
+If you have a separate layouts for park employees and park guests, you
+can explicitly choose which layout should be used to wrap page content:
+
+    get '/food-court/burger-stand' => sub {
+        template items => {
+            foods => \@foods,
+            drinks => \@drinks,
+        }, { layout => 'main' };
+    };
+
+    get '/cinemaland/change-film-reels' => sub {
+        template films => { films => \@films }, { layout => 'employee' };
+    };
+
+    get '/actionland/thrill-rides' => sub {
+        template rides => { rides => \@rides }, { layout => 'visitor' };
+    };
+
+In this example:
+
+=over 4
+
+=item *
+
+Employees and guests both choose from the same menu, so in the food court,
+they should be presented with the same standard page elements and options.
+
+=item *
+
+Guests of Cinemaland aren't required to change the film reels between
+showings, but park employees are. By specifying a layout of C<employee.tt>,
+they will get a special look and set of options appropriate to park
+workers. The route renders a template (C<films.tt>) within that layout.
+
+=item *
+
+Park visitors interact with rides differently than employees. By
+displaying the C<rides.tt> template within the C<visitor.tt> layout, we
+can help guests board and get off rides with consistent messaging and
+instructions.
+
+=back
+
+This helps maintain consistency across different pages in Danceyland by
+reusing the layout and changing only the dynamic content for each route.
+
+=head3 Default Layout
+
+When no layout is explicitly specified in a route, Dancer2 will use the
+C<main> layout as the default:
+
+    get '/home' => sub {
+        template 'homepage';
+    };
+
+In this case, Dancer2 renders C<homepage.tt> within the default layout
+C<main.tt>.
+
+=head3 Disabling Layouts
+
+If you want to render a view without a layout, you can pass
+C<< { layout => undef } >> to the C<template> keyword:
+
+    get '/payment-options' => sub {
+        template 'payment-options', { }, { layout => undef };
+    };
+
+This route renders the C<payment-options.tt> template without using the
+default or any specified layout.
+
+=head4 When should I use a layout, and when shouldn't I?
+
+There are three different ways to return data from a Dancer2 app:
+
+=over
+
+=item *
+
+Returning HTML content that represents the entire content of the page
+(and allowing the browser to render it)
+
+=item *
+
+HTML content for only a portion of the page (using JS to insert that HTML
+dynamically in the page, and the browser then takes over rendering it)
+
+=item *
+
+JSON/XML/etc. content that the JS decides what to do with, possibly
+rendering some front-end template and updating the DOM nodes
+
+=back
+
+For option 1, you would use a layout to ensure a full HTML page is
+returned. For option 2, you would disable the layout. In option 3,
+you would serialize a data structure returned from a route.
+
+The benefit of returning a part of a HTML page (option 2) is when:
+
+=over
+
+=item *
+
+You don't want to render the entire page in the backend
+
+=item *
+
+You don't want to fetch all the data for the entire page (imagine menus,
+headers, etc.)
+
+=item *
+
+You prefer to inject the HTML directly to an element, reducing front-end
+complexity
+
+=back
+
+If you are building interfaces with toolkits like L<htmx|https://htmx.org/> or
+L<Turbo|https://turbo.hotwired.dev/>, it's important to only return
+a partial page.
+
+=head2 Default template variables
+
+=over
+
+=item perl_version
+
+The version of Perl that's running Danceyland. This aligns with Perl's
+special C<$^V> variable.
+
+=item dancer_version
+
+The current version of Dancer2. Similar to C<< Dancer2->VERSION >>.
+
+=item settings
+
+This is a hash containing the configuration of Danceyland.
+
+=item request
+
+This represents the user's current request. Calling C<request> returns
+a L<Dancer2::Core::Request> object.
+
+=item params
+
+C<params> provides a hash reference of all parameters passed to Danceyland.
+
+=item vars
+
+This is the list of variables for this request. It is the same thing you
+would get if you used the C<vars> keyword in the application itself. We'll
+learn more about C<vars> in the L</Configuration> section.
+
+=item session
+
+This variable contains all information in the user's session, should one
+exist. We'll talk more about sessions in the next section.
+
+=back
+
+=head2 Configuring the Template Engine
+
+You can configure the template engine in Dancer2 to customize aspects
+such as the open and closing tags used for placeholders.
+
+=head3 Changing Open and Closing Tags
+
+In your configuration file (e.g., C<config.yml>), you can set the
+C<start_tag> and C<stop_tag> options:
+
+    template: "template_toolkit"
+    engines:
+      template:
+        template_toolkit:
+          start_tag: '[%'
+          stop_tag: '%]'
+
+Dancer2 defaults placeholder tags to C<< <% %> >>. The above configuration
+restores the Template toolkit defaults of C<< [% %] >>. Your template
+variables will now look like this:
+
+    <h1>[% title %]</h1>
+    <p>Welcome to Danceyland!</p>
+
+Most template engines support this functionality, but some (such as
+L<Dancer2::Template::Tiny>) do not.
+
+=head2 Encoding in Templates
+
+Dancer2 supports encoding for templates to ensure that the content is
+correctly displayed, especially when dealing with non-ASCII characters:
+
+    template: "template_toolkit"
+    engines:
+      template:
+        template_toolkit:
+          encoding: 'utf-8'
+
+This configuration ensures that the templates are processed using UTF-8
+encoding. This is particularly important if your templates contain
+special characters, such as international text or symbols.
+
+=head3 New Keywords
+
+=over
+
+=item * engine
+
+At the heart of every attraction in Danceyland lies a powerful engine that
+brings it to life. Similarly, in Dancer2, the C<engine> keyword provides
+access to the current engine object, whether it's the template engine
+rendering the views or the logger keeping track of events:
+
+    my $template_engine = engine 'template';
+
+=back
+
+=head2 Comparison of Supported Template Engines
+
+Dancer2 supports various template engines to give you flexibility in how
+you render views. Here's a brief comparison of the available engines:
+
+=over 4
+
+=item Dancer2::Template::TemplateToolkit (L<Template> Toolkit, TT)
+
+A powerful and flexible templating system with extensive features like
+loops, conditions, macros, and plugins. Suitable for complex templating
+needs.
+
+=item Dancer2::Template::Mason (L<Mason>)
+
+A component-based templating system that allows embedding Perl code
+within templates. Ideal for complex web applications that require
+reusable components.
+
+=item Dancer2::Template::Xslate (L<Xslate>)
+
+A high-performance templating engine that offers a mix of syntax styles.
+Great for applications requiring speed and flexibility.
+
+=item Dancer2::Template::TemplateFlute (L<Flute>)
+
+A template engine focused on separating logic from presentation.
+Templates contain no logic and are designer-friendly.
+
+=item Dancer2::Template::Tiny (L<Template::Tiny>)
+
+A minimalistic template engine with limited features. Suitable for small
+projects or when you need a simple, lightweight option.
+
+=item Dancer2::Template::Simple
+
+A basic and straightforward templating engine. Not recommended unless you
+are migrating applications from Dancer 1 built with L<Dancer::Template::Simple>.
+
+=item Dancer2::Template::Mustache (L<Mustache:https://mustache.github.io/>, L<Dancer2::Template::Mustache>)
+
+A logic-less template engine with a strong emphasis on separation of
+logic and presentation. Great for consistent rendering across different
+languages and platforms.
+
+=item Dancer2::Template::Handlebars (L<Handlebars|>, L<Text::Handlebars>)
+
+An extension of Mustache with additional features like helpers and more
+expressive templates. Ideal for complex templates that still maintain a
+clean and readable structure.
+
+=item B<Dancer2::Template::Haml> (L<HAML|https://haml.info/>, L<Text::Haml>)
+
+A clean and concise templating system that uses indentation to define
+HTML elements. Perfect for those who prefer a more human-readable
+approach to HTML templating.
+
+=back
+
+Choose a template engine based on the complexity and requirements of your
+Danceyland application.
+
+=head1 Sessions: Multi-Day Passes
+
+Sessions are like multi-day or season passes for visitors. They allow
+visitors to return to the park multiple times without having to buy a
+new ticket each time.
+
+=head2 The importance of state
+
+HTTP and HTTPS are stateless protocols, meaning each request from a
+client to a server is independent. The server processes each request
+and responds, but it doesn’t remember past interactions. Therefore, each
+new request must include all necessary information, as the server doesn’t
+retain any “state” between requests — this is something developers must
+implement if needed.
+
+This lack of memory between requests is why web frameworks use B<session
+management>. Sessions allow servers to remember users' actions across
+multiple requests, creating a sense of continuity, or "state." To do
+this, web frameworks often rely on B<cookies> — small pieces of data stored
+in the browser. When a client connects, the server assigns a unique
+session ID stored in a cookie, which the browser sends with each request.
+This session ID allows the server to "remember" the user's previous
+interactions, making it possible to build personalized and seamless web
+experiences.
+
+The following section explains how to manage sessions with Dancer2.
+
+=head2 Managing visitor sessions
+
+To create or update a session, use the C<session> keyword. Sessions store
+data across multiple requests using a unique session ID.
+
+    set session => 'Simple';
+
+    get '/login' => sub {
+        session user => 'John Doe';
+        return "Welcome back, John Doe!";
+    };
+
+    get '/profile' => sub {
+        my $user = session('user');
+        return "User profile for: $user";
+    };
+
+=over 4
+
+=item *
+
+A session stores the user information once they log in.
+
+=item *
+
+The C</login> route initiates a session for the user.
+
+=item *
+
+The C</profile> route retrieves the user information from the session.
+
+=back
+
+=head3 New Keywords
+
+=over 4
+
+=item set
+
+This keyword is used to configure settings for your application, like setting the session engine:
+
+    set session => 'Simple';
+
+=item session
+
+This keyword is used to store and retrieve session data:
+
+    session user => 'John Doe';  # Store data
+    my $user_1 = session('user');  # Retrieve data
+    my $user_2 = session->read('user');  # Also retrieves data
+
+=back
+
+=head3 Changing the Session ID
+
+For security reasons, you might want to change the session ID, especially
+after a user logs in. This can help prevent L<session fixation attacks|https://owasp.org/www-community/attacks/Session_fixation>.
+
+    get '/secure-login' => sub {
+        my $username = body_parameters->get( 'username' );
+        session user => $username;
+        app->change_session_id;  # Change the session ID
+        return "Welcome back, $username!";
+    };
+
+=head3 Destroying Sessions
+
+To log the user out and destroy the session, use the C<< app->destroy_session >>.
+
+    get '/logout' => sub {
+        app->destroy_session;
+        return "You have been logged out.";
+    };
+
+=head2 Configuring the Session Engine
+
+Dancer2 supports various session engines that determine how and where
+session data is stored. You can configure the session engine in the
+C<config.yml> file:
+
+    session: "Simple"
+    session_options:
+      cookie_name: "danceyland_session"
+      expires: 3600
+
+This configuration uses the C<Simple> session engine, storing session
+data in memory, and sets the session to expire in one hour.
+
+=head2 Session Storage Backends
+
+Dancer2 supports multiple session storage backends, allowing you to
+choose how and where to store session data.
+
+=over 4
+
+=item Dancer2::Session::Simple
+
+Stores session data in memory. Suitable for development and testing but
+not recommended for production due to its non-persistent nature.
+
+=item Dancer2::Session::YAML
+
+Stores session data in a YAML file. It's useful for development and
+debugging, but not well suited for production.
+
+=item Dancer2::Session::JSON
+
+Stores session data in a JSON file. Similar restrictions to the YAML
+session engine.
+
+=item Dancer2::Session::Cookie
+
+Stores session data within the user's browser as a cookie. Data is not
+stored server-side. Good for lightweight sessions.
+
+=item Dancer2::Session::PSGI
+
+Leverages PSGI's built-in session management. Useful if you want to
+delegate session handling to the PSGI server, or if you are sharing
+session data with non-Dancer2 applications.
+
+=item Dancer2::Session::DBI
+
+Stores session data in a database using L<DBI>. Ideal for larger
+applications that require a robust and scalable storage solution.
+
+=item Dancer2::Session::Redis
+
+Stores session data in a Redis database. Suitable for high-performance,
+distributed, and scalable session storage.
+
+=item Dancer2::Session::Sereal
+
+Uses Sereal for fast, compact session serialization. Suitable for
+high-performance applications requiring efficient serialization.
+
+=item Dancer2::Session::CHI
+
+Uses the L<CHI> caching framework for session storage. Flexible and
+supports various caching backends like memory, file, and databases.
+
+=item Dancer2::Session::Memcached
+
+Stores session data in a Memcached server. Suitable for distributed
+environments requiring quick access to session data.
+
+=item Dancer2::Session::MongoDB
+
+Stores session data in a MongoDB database. Ideal for applications
+requiring a NoSQL storage solution.
+
+=back
+
+Choose a session backend based on the complexity and storage needs of
+your Danceyland application.
+
+=head1 Cookies
+
+Cookies are small pieces of data stored on the client's browser, not just
+goodies available for purchase in Danceyland. They are often used to keep
+track of session information and user preferences.
+
+Sessions in Dancer2 use cookies to store the session ID on the client's
+browser.
+
+=head2 Setting and Updating Cookies
+
+You can set a cookie using the C<cookie> keyword. To update a cookie,
+simply set it again with a new value:
+
+    get '/set-cookie' => sub {
+        cookie 'visitor' => 'regular';
+        return "Cookie has been set!";
+    };
+
+This route sets a cookie named C<visitor> with the value C<regular>.
+
+=head2 Retrieving Cookies
+
+To retrieve a cookie, use the C<cookie> keyword with the cookie's name:
+
+    get '/get-cookie' => sub {
+        my $visitor_type = cookie('visitor');
+        return "Visitor type: $visitor_type";
+    };
+
+This route retrieves the value of the C<visitor> cookie.
+
+To retrieve all cookies, use the C<cookies> keyword:
+
+    get '/check-cookies' => sub {
+        my $cookies = cookies;
+        for my $name ( keys $cookies->%* ) {
+            debug "You have a cookie named $name";
+            # Do other stuff...
+        }
+    }
+
+=head2 Multiple Values Per Cookie
+
+Cookie values can be multi-valued. C<cookie('name')> returns the first value
+in scalar context and all values in list context.
+
+    my $visitor  = cookie('visitor'); # single value
+    my @visitors = cookie('visitor'); # multiple values (list context)
+
+However, you can also call the methods C<value> (for either scalar/list
+contexts), or C<values> for list only context:
+
+    my $cookie   = cookies->{'name'};
+    my $visitor  = $cookie->value();
+    my @visitors = $cookies->values();
+
+    # this also works, similar to the DSL keyword 'cookie'
+    my @visitors = $cookie->value();
+
+=head2 Deleting Cookies
+
+To delete a cookie, set it with an expiration time in the past:
+
+    get '/delete-cookie' => sub {
+        cookie 'visitor' => 'expired', expires => '-1d';
+        return "Cookie has been deleted.";
+    };
+
+This route deletes the C<visitor> cookie by setting its expiration date
+to a past date.
+
+=head1 Error Handling: Managing Ride Breakdowns and Other Park Issues
+
+Just like managing ride breakdowns or out-of-stock concessions in a theme
+park, error handling in a web application involves dealing with unexpected
+issues gracefully.
+
+=head2 Why should we fail gracefully?
+
+Regardless if a problem is one we can control or not, not handling a problem
+
+Whether or not a problem is one we can predict, handing errors in a poor
+or disruptive way can really ruin a visitor's day at the park. It may not
+be as rude as the pretzel vendor that yells at you for not leaving a tip,
+but it can certainly sour a vistor for future visits.
+
+Errors happen. Handling errors in a predictable, friendly manner can make
+all the difference. Give visitors a friendly message that explains what
+went wrong, and if you can still provide them with some limited park
+functionality, then do so.
+
+=head3 500 - the error of last resort
+
+When a 500 error occurs, either it means the park operators didn't think
+to check for a particular error, or something absolutely unpredictable
+happened (a gust of wind knocked a tree branch across a park walkway).
+
+When issuing a 500 error, try not to give away too much information (such
+as a stack trace) so as to not give a potential attacker too much
+information.
+
+Try to catch as many things as you can. Sending a 500 error isn't the
+end of park operations, but they should show up sparingly, at worst.
+
+=head3 Handling Errors When a Ride is Closed
+
+    get '/roller-coaster' => sub {
+        status 'service_unavailable';
+        return "Sorry, the roller coaster is currently closed for maintenance.";
+    };
+
+This route catches the request to the roller coaster when it's closed
+and returns a friendly error message.
+
+=head2 Error Pages
+
+You can define custom error pages to provide a friendly message to your
+users when something goes wrong.
+
+To create a custom error page, place a template in the C<views> directory
+named after the error code, like C<views/404.tt>:
+
+    <h1>Oops! Page Not Found</h1>
+    <p>The page you are looking for does not exist in Danceyland.</p>
+
+This custom page will be displayed whenever a 404 error occurs.
+
+=head2 New Keywords
+
+=over 4
+
+=item status
+
+Status sets the HTTP status code that is returned by response from
+Dancer2. It can be specified as either a number (C<status 404>), or
+its lower-case name (C<status 'not_found'>).
+
+=item halt
+
+The C<halt> keyword immediately stops the processing of the current route
+and sends a response back to the client:
+
+    get '/restricted' => sub {
+        halt "Access denied!" unless session('is_admin');
+        return "Welcome to the restricted area.";
+    };
+
+In this example, if the visitor is not an admin, C<halt> stops execution
+and returns C<Access denied!>.
+
+=item send_error
+
+The C<send_error> keyword sends an error response with a specific status
+code:
+
+    get '/data' => sub {
+        my $data = fetch_data();
+        send_error "Data not found", 404 unless $data;
+        return $data;
+    };
+
+This example sends a 404 error response if the data is not found.
+
+=back
+
+=head1 Static Files and File Uploads
+
+In Danceyland, we don't just offer thrilling rides; we also serve files!
+Whether you’re providing a downloadable park map or processing guest
+photo uploads, Dancer2 has you covered.
+
+=head2 Serving Static Files from Dancer2
+
+Sometimes you want to make certain information (in the form of files)
+available to visitors without asking them to stand in line. Dancer2 makes
+serving static files easy.
+
+=head3 From a Directory
+
+By default, Dancer2 serves static files from the C<public> directory in
+your app. Just place your files (like images or PDFs) in the C<public>
+folder, and they’ll be accessible at C</static/path>:
+
+    # Access the file public/images/logo.png via
+    http://danceyland.local/static/images/logo.png
+
+=head3 Sending Static Files from a Route Handler
+
+You can also serve static files programmatically from a route handler
+using C<send_file>:
+
+    get '/download-map' => sub {
+        send_file 'park-map.pdf', content_type => 'application/pdf';
+    };
+
+Using C<send_file> immediately exits the current route.
+
+=head3 When Might You Not Want to Serve Static Files?
+
+While serving static files is convenient, there are times when you may
+not want to do it directly:
+
+=over 4
+
+=item *
+
+You want to offload static content delivery to a CDN (Content Delivery
+Network) for performance.
+
+=item *
+
+You need fine-grained access control on your files.
+
+=item *
+
+Your static content is large or frequently changing, and you'd prefer a
+more scalable solution.
+
+=back
+
+=head3 How to Disable Static File Serving
+
+If you'd prefer not to serve static files from your Dancer2 app, you can
+disable it in your C<config.yml> file:
+
+    static: 0
+
+Now, all file requests will be routed through your handlers or passed
+to another service.
+
+=head2 Using C<send_file> to Deliver Files from Memory
+
+You’re not limited to files on disk! You can use C<send_file> to deliver
+files created or stored in memory:
+
+    get '/dynamic-file' => sub {
+        my $data = "This is a dynamically generated file.";
+        return send_file(\$data, content_type => 'text/plain', filename => 'dynamic.txt');
+    };
+
+In this example, we generate a file on-the-fly and send it back to the user.
+
+=head2 Handling File Uploads
+
+If guests are submitting photos or other files at Danceyland, you'll
+need to handle file uploads. Dancer2 makes it easy with the C<upload> keyword:
+
+    post '/upload-photo' => sub {
+        my $upload = upload('photo');
+        return "No file uploaded" unless $upload;
+
+        my $filename = $upload->filename;
+        my $filehandle = $upload->file_handle;
+        open my $out, '>', "/uploads/$filename" or die "Failed to open: $!";
+        while (<$filehandle>) {
+            print $out $_;
+        }
+        close $out;
+
+        return "Uploaded $filename successfully!";
+    };
+
+=head2 Working with Paths and Directories
+
+Dancer2 provides keywords for navigating paths and directories, similar
+to navigating Danceyland.
+
+=head3 path
+
+Navigating through Danceyland requires clear paths and an understanding
+of the surroundings. In Dancer2, the C<path> keyword allows you to
+create a path from several different directories:
+    use Dancer2;
+
+    get '/attraction/:name' => sub {
+        my $current_path = path( '/the', 'road', 'less', 'traveled' );
+        return "You're visiting: $current_path";
+    };
+
+=head3 dirname
+
+Given a path through Danceyland, like above, C<dirname> will tell you the
+directory you are located in:
+
+    use Dancer2;
+
+    get '/resource' => sub {
+        my $file_path = '/path/to/danceyland/config.yml';
+        my $directory = dirname($file_path);
+        return "Config file is located in: $directory";
+    };
+
+=head2 Keywords Covered
+
+=over
+
+=item send_file
+
+Used to send a file, either from disk or memory, to the client.
+
+=item upload
+
+Used to retrieve an uploaded file.
+
+=back
+
+=head1 Configuration, Startup, Initialization, Versioning
+
+Danceyland needs its rides and attractions to work just right, and so
+does your Dancer2 app. Configuration is key to ensuring your app runs
+smoothly in every environment.
+
+=head2 How Do Environments Help Us Configure Our Applications?
+
+Dancer2 uses environments (such as C<development> or C<production>) to
+customize configuration depending on where the app is running. This
+allows you to tweak things like logging, error reporting, or even
+database connections, based on your environment.
+
+    environments:
+      development:
+        logger: "console"
+        show_errors: 1
+      production:
+        logger: "file"
+        show_errors: 0
+
+All of your applications will use F<config.yml>, which is the base
+configuration across B<all> of your application's environments. It is
+here where you will configure such things as your template engine and
+other extensions/settomgs that do not change across environments.
+
+=head2 Using Environment-Specific Config Files
+
+You can create environment-specific config files, like C<production.yml>
+and C<development.yml>, in the F<environments> directory. Dancer2 will
+load the environment-specific file after the main config, applying those
+settings last.
+
+You are not limited to the environment names used; different projects and
+companies will have different requirements and different environments.
+
+Applications are not limited to YAML-based configuration files. Dancer2
+supports config files in any format supported by L<Config::Any>, including
+JSON and Apache-style configs.
+
+=head2 Config File Resolution Order
+
+Dancer2 resolves configuration in the following order:
+
+=over 4
+
+=item *
+
+C<config.yml>
+
+=item *
+
+Environment-specific config (e.g., C<environments/development.yml>)
+
+=item *
+
+Settings in the environment or explicitly set during runtime (using the
+C<set> keyword)
+
+=back
+
+=head2 Accessing Configuration Information
+
+You can access configuration values in your app using the C<config> keyword.
+
+Example:
+
+    get '/info' => sub {
+        my $app_name = config->{'appname'};
+        return "Welcome to $app_name!";
+    };
+
+=head2 Using C<set> Explicitly
+
+You can explicitly set configuration values using the C<set> keyword.
+
+Example:
+
+    set session => 'Simple';
+    set logger => 'console';
+
+=head2 Plugin Configuration
+
+You can configure plugins in your C<config.yml> file under the C<plugins> section.
+
+Example:
+
+    plugins:
+      Database:
+        driver: 'SQLite'
+        database: 'danceyland.db'
+
+=head2 Startup and Initialization
+
+Some keywords can help prepare Danceyland to start operations in the morning,
+while others offer you insider access to critical areas of the park. Let's
+take a look at what some of these are,
+
+=head3 Accessing the Application Object
+
+Sometimes, you really have to get your hands dirty and go behind the scenes
+of things at Danceyland. The C<app> keyword gives you access to the
+application object (of type L<Dancer2::Core::App>) to change configuration
+or perform certain functions. Another keyword, C<dancer_app>, also lets you
+access the application object.
+
+=head3 Running Code at Startup
+
+The C<prepare_app> keyword takes a coderef that will be run once at the
+start of your application. If there is any one-time setup that needs to
+be performed (like starting up another service, connecting to a service,
+initializing a cache, etc.), C<prepare_app> will give you a place to do
+this.
+
+For example:
+
+    prepare_app {
+        debug "Starting our morning prep work";
+        $rides->power_on();
+        $vendors->prep_food();
+        debug "Open for business!";
+    };
+
+=head3 Starting the Application
+
+The traditional way of kicking things off at Danceyland was to, well, dance!
+
+    use Dancer2;
+
+    get '/' => sub {
+        return 'Welcome to Danceyland!';
+    };
+
+    dance;
+
+As time passed and things changed, dancing wasn't always the right way
+to start the day. C<to_app> became tbe better and preferred way to start
+our Dancer2 applications. C<psgi_app> may also be used.
+
+=head3 Versioning and Compatibility
+
+As Danceyland introduces new attractions, it's essential to ensure they
+align with the park's current standards. In the realm of Dancer2, you can
+use C<dancer_version> to retrieve the full version number of your framework,
+aiding in maintaining compatibility and leveraging the latest features:
+
+    use Dancer2;
+    return "Running on Dancer2 version " . dancer_version;
+
+C<dancer_major_version> provides the major version of Dancer2, helping in
+ensuring compatibility with plugins or external components:
+
+    use Dancer2;
+    return "Running on Dancer2 major version " . dancer_major_version;
+
+=head2 New Keywords
+
+=over 4
+
+=item app
+
+Returns the application object. App object is a L<Dancer2::Core::App>.
+
+=item config
+
+Retrieves configuration values.
+
+=item dance
+
+Starts the application. Not recommended.
+
+=item dancer_app
+
+Returns the application object. Synonym for C<app>.
+
+=item dancer_major_version
+
+Returns the major version of Dancer2.
+
+=item dancer_version
+
+Returns the full version number of Dancer2.
+
+=item prepare_app
+
+Runs a coderef at the start of your application only.
+
+=item psgi_app
+
+Synonym for C<to_app>.
+
+=item set
+
+Explicitly sets configuration options.
+
+=item setting
+
+Returns the value of the specified config setting.
+
+=item to_app
+
+Returns a coderef to your application, to be started by a Plack server.
+
+=item var
+
+Set and retrieve a temporary named value within your application.
+
+=item vars
+
+Returns a hashref or all temporary variables/values in your application.
+
+=back
+
+=head1 Logging
+
+Just like monitoring the lines for the roller coasters, logging helps
+you keep track of what’s happening in your Dancer2 app.
+
+=head2 Why Should We Log?
+
+Logging is important for tracking errors, performance, and overall
+activity in your app. It helps you understand what’s going right (or
+wrong) in Danceyland.
+
+=head3 What Types of Things Might We Want to Log?
+
+=over 4
+
+=item *
+
+Errors (e.g., a ride breaking down)
+
+=item *
+
+Important events (e.g., a new guest registering)
+
+=item *
+
+Debug information (e.g., the details of a request)
+
+=back
+
+=head2 Configuring Logging in Your Dancer2 App
+
+You can configure logging in your C<config.yml> file:
+
+    logger: "console"
+    log: "debug"
+
+This configuration sends logs to the console and logs all messages at
+the C<debug> level or higher.
+
+=head2 Logging Your Own Messages
+
+You can log your own messages using the logging keywords:
+
+    debug "This is a debug message.";
+    info "A new user has registered.";
+    warning "The ride is slowing down!";
+    error "The roller coaster broke down!";
+
+=head2 Link to Extending Section
+
+For more information on extending the logger or creating custom loggers,
+refer to the Extending section.
+
+=head2 Keywords Covered
+
+=over 4
+
+=item debug
+
+Logs a debug-level message.
+
+=item info
+
+Logs an info-level message.
+
+=item warning
+
+Logs a warning-level message.
+
+=item error
+
+Logs an error-level message.
+
+=item log
+
+Logs a message at the specified log level:
+
+    log( debug => 'This is a debug message' );
+
+=back
+
+=head1 Testing
+
+Testing is essential to ensure that Danceyland's attractions are safe
+and fun — and the same goes for your Dancer2 app.
+
+=head2 Why Test?
+
+Testing helps you find bugs before your guests (users) do. It ensures
+that your app behaves as expected, even when things get complicated. Tests
+help ensure that you don't accidentally break existing functionality when
+making changes to your application.
+
+=head2 Example: Using C<Plack::Test>
+
+C<Plack::Test> allows you to test your app’s behavior without spinning up
+a web server:
+
+    use Plack::Test;
+    use HTTP::Request::Common;
+    use MyApp;
+
+    test_psgi app => MyApp->to_app, client => sub {
+        my $cb = shift;
+        my $res = $cb->(GET "/");
+        like $res->content, qr/Welcome to Danceyland/, "Home page works!";
+    };
+
+=head2 Example: Using C<Test::WWW::Mechanize::PSGI>
+
+C<Test::WWW::Mechanize::PSGI> provides a more user-friendly interface
+for testing your app, making it easier to simulate interactions:
+
+    use Test::WWW::Mechanize::PSGI;
+    use MyApp;
+
+    my $mech = Test::WWW::Mechanize::PSGI->new( app => MyApp->to_app );
+    $mech->get_ok('/');
+    $mech->content_contains('Welcome to Danceyland');
+
+=head2 More Information
+
+For more in-depth coverage of testing in Dancer2, check out L<Dancer2::Manual::Testing>.
+
+=head1 Plugins
+
+Danceyland is full of exciting rides and attractions, but sometimes you
+need to add something extra—a little popcorn stand or a souvenir shop.
+That’s where plugins come in!
+
+=head2 What Are Plugins?
+
+Plugins in Dancer2 are reusable modules that extend your app's
+functionality. Whether it's connecting to a database, handling
+authentication, or integrating with third-party services, plugins make
+it easy to add features to your Dancer2 app without reinventing the
+wheel.
+
+=head2 Why Do We Need Plugins?
+
+Plugins allow you to add functionality without having to reinvent the
+wheel. Need authentication? Validation? Plugins are there to help you
+focus on building the fun stuff, while they handle the heavy lifting.
+
+Examples:
+
+=over 4
+
+=item Dancer2::Plugin::Auth::Tiny
+
+L<Dancer2::Plugin::Auth::Tiny> provides a simple and easy way to protect
+your routes with minimal authentication logic. For example, you can
+restrict access to certain routes with this plugin.
+
+=item Dancer2::Plugin::DataTransposeValidator
+
+L<Dancer2::Plugin::DataTransposeValidator> allows you to validate
+incoming data using L<Data::Transpose>, giving you flexibility when
+handling forms and other user inputs.
+
+=back
+
+=head2 How to Write a Plugin?
+
+Writing a plugin for Dancer2 is as simple as creating a module that hooks
+into the Dancer2 app lifecycle. It’s a fun ride! For detailed guidance on
+writing plugins, refer to L<Dancer2::Manual::Extending>.
+
+=head1 Complete Guide to Keywords
+
+Danceyland has its own lingo that makes it easy to construct and
+interact with your park, and with other developers working on the park.
+Dancer2 provides you with a DSL (Domain-Specific Language) which makes
+it easy to implement, maintain, and extend your applications. You've
+already learned many of these keywords, but there are additional ones
+that provide even greater functionality.
+
+See L<the keyword guide|Dancer2::Manual::Keywords> for a complete list of
+keywords provided by Dancer2.
+
+=head1 Advanced Topics
+
+Danceyland isn’t just for beginners—there’s always more to explore. Here
+are some advanced features of Dancer2 that will take your app to the
+next level.
+
+=head2 Composing an App with C<appname>
+
+In a theme park as vast as Danceyland, sometimes you need different
+sections, like the Magical Kingdom or Actionland. Similarly, Dancer2
+allows you to build separate applications, but unite them together under
+a single name using the C<appname> keyword, so each section can have its
+own unique routing and logic.
+
+=head3 Example: Composing multiple apps with C<appname> into one app
+
+Using C<appname>, you can compose different apps within one big web app.
+Each package can have its own Perl namespace but uses the same Dancer2
+namespace, so the routes are all available in the one application.
+
+    # In file MagicApp.pm
+    package MagicApp;
+    use Dancer2 appname => 'MainApp';
+
+    get '/wand-shop' => sub {
+        return "Welcome to the Wand Shop in the Magic Kingdom!";
+    };
+
+    # In file ActionApp.pm
+    package ActionApp;
+    use Dancer2 appname => 'MainApp';
+
+    get '/thrill-rides' => sub {
+        return "Ready for the thrill rides in Actionland?";
+    };
+
+    # in MainApp.pm
+    package MainApp;
+    use Dancer2;
+    use MagicApp;
+    use ActionApp;
+
+    # In the handler
+    use MainApp;
+    MainApp->to_app();
+
+In this example, the C<MagicApp> package defines routes for the Magical
+Kingdom, and the C<ActionApp> package defines routes for Actionland -
+both using C<< appname => 'MainApp' >>.
+
+=head2 Manually Adjusting MIME settings
+
+In Danceyland, each attraction offers a unique experience, much like how
+different content types are handled in your application. The C<mime>
+keyword provides access to your applicaion's MIME processing object,
+L<Dancer2::Core::MIME>:
+
+    use Dancer2;
+
+    get '/file/:name' => sub {
+        my $filename = route_parameters->get('name');
+        my $file_path = "/path/to/files/$filename";
+        my $content_type = mime->for_file($filename);
+        send_file($file_path, content_type => $content_type);
+    };
+
+=head2 Adding Additional Response Headers
+
+In Danceyland, enhancing visitor experience often involves adding new
+signposts without replacing existing ones. Similarly, in Dancer2, the
+C<push_response_header> keyword allows you to add new values to an
+existing response header without overwriting its current content. This
+is particularly useful for headers like C<Set-Cookie>, where multiple
+values might be necessary:
+
+    use Dancer2;
+
+    get '/set_cookies' => sub {
+        push_response_header 'Set-Cookie' => 'user=alice';
+        push_response_header 'Set-Cookie' => 'theme=light';
+        return "Cookies have been set.";
+    };
+
+In this example, two cookies are added to the response without overwriting
+each other.
+
+=head2 Automatic Serializing and Deserializing Data
+
+In Danceyland, sometimes we need to provide data to our visitors in
+different formats, like JSON, YAML, or XML. Dancer2 makes serializing
+data a breeze. You can even configure Dancer2 to automatically serialize
+your responses based on the content type requested by the client.
+
+=head3 Example: Serializing JSON for output
+
+    set serializer => 'JSON';
+
+    get '/ride-info' => sub {
+        return { name => 'Roller Coaster', status => 'Open' };
+    };
+
+With this setup, the response will automatically be serialized to JSON
+when requested.
+
+=head3 Example: Deserializing JSON from input
+
+Dancer2 can also deserialize incoming requests automatically when a
+serializer is enabled. If the client sends JSON data, it will be
+automatically parsed.
+
+    post '/update-ride' => sub {
+        my $data = request->data;  # Automatically deserialized JSON input
+        return "Ride updated: " . $data->{name};
+    };
+
+Here, the incoming request body is JSON, and Dancer2 deserializes it
+into a Perl data structure that you can access through C<< request->data >>.
+
+=head2 Manual Serializing and Deserializing
+
+Dancer2 also provides manual serialization methods for specific use cases
+where automatic serialization isn't enough, or can't be used.
+
+=head3 C<send_as>
+
+C<send_as> allows you to manually serialize your response in a specific
+format like JSON or YAML. This is useful when you need explicit control
+over the response format:
+
+    get '/info' => sub {
+        return send_as JSON => { name => 'Danceyland', status => 'open' };
+    };
+
+Here, C<send_as> explicitly returns the response as JSON.
+
+=head3 C<encode_json>
+
+In managing Danceyland, park data comes and goes in various formats. Dancer2
+provides tools to handle these formats efficiently. The C<encode_json>
+keyword allows you to serialize a Perl data structure into a JSON string:
+
+    use Dancer2;
+
+    get '/data' => sub {
+        my $data = { attraction => 'Roller Coaster', status => 'open' };
+        return encode_json($data);
+    };
+
+C<encode_json> expects character data and returns UTF-8 encoded bytes.
+
+Since you are manually serializing the response data, the serialization
+hooks provided by Dancer2 are not called. See L</Hooks> for more information.
+
+=head3 C<to_json>
+
+C<to_json> converts a Perl data structure to a JSON string. It's useful
+when you want to manually prepare JSON data before sending it:
+
+    my $json_string = to_json({ name => 'Danceyland', status => 'open' });
+
+You likely want to use C<encode_json> instead. Both return UTF-8 encoded
+bytes, but C<encode_json> makes the intent explicit.
+
+=head3 C<decode_json>
+
+You can decode incoming JSON payloads from the client with the C<decode_json>
+keyword; it deserializes a JSON string into a Perl data structure:
+
+    use Dancer2;
+
+    post '/update' => sub {
+        my $json_data = request->body;
+        my $data = decode_json($json_data);
+        # Now, do something with it...
+    };
+
+Since you are manually deserializing the incoming JSON, the serialization
+hooks will not run.
+
+=head3 C<from_json>
+
+C<from_json> also decodes JSON to a Perl data structure. The input is
+expected to be UTF-8 encoded bytes.
+
+=head3 C<to_yaml>
+
+C<to_yaml> takes a Perl datastructure and converts it to a YAML string.
+
+=head3 C<from_yaml>
+
+Similarly, C<from_yaml> lets you deserialize a YAML string into a Perl
+data structure:
+
+    use Dancer2;
+
+    get '/config' => sub {
+        my $yaml_data = request->body;
+        my $data = from_yaml($yaml_data);
+        # Now, do something with $data...
+    };
+
+=head3 C<to_dumper>
+
+Deserializes a string to a L<Data::Dumper>-compatible data structure.
+
+=head3 C<from_dumper>
+
+Takes a data structure produced from L<Data::Dumper> and serializes it
+to a string.
+
+=head2 Hooks
+
+Hooks are like special backstage passes at Danceyland. They give you
+special access by allowing you to execute code at specific points in the
+request/response cycle. You can use them to modify requests, responses,
+or even add your own logic before or after routes are processed.
+
+=head3 Using Hooks with C<vars>
+
+Sometimes you want to share information across routes. You can use hooks
+to store data using C<vars>, making it available for later routes:
+
+    hook before => sub {
+        my $request = request;
+        vars->{visitor_id} = "VIP-" . $request->address;
+    };
+
+    get '/vip-area' => sub {
+        return "Welcome, " . vars->{visitor_id} . "!";
+    };
+
+In this example, we store the visitor’s ID (based on their IP address)
+in the C<vars> keyword during the C<before> hook. That value is later
+used in the C</vip-area> route to personalize the response.
+
+=head3 Request Hooks
+
+At the ticket booth just inside the entrance of Danceyland, the friendly
+gatekeeper scans every visitor's pass and gives them a sticker as they pass
+into the park:
+
+    hook before => sub {
+        var sticker => 1;
+    };
+
+The C<before> hook runs before any other code just before each request is
+handled. In this example, we set a var, C<sticker>, that can be used later
+in the request.
+
+As each visitor leaves, a park employee stamps each person's hand so they
+can be readmitted later in the day:
+
+    hook after => sub {
+        my $user = var user;
+        $user->stamp_hand;
+    };
+
+For this example, An object representing a user was stored in a var earlier
+in the request. On the user's way out (via the C<after> hook), their hand
+gets stamped, and could be checked the next time the user enters the park
+to skip buying another ticket.
+
+=head3 Template Hooks
+
+At Danceyland’s Caricature Corner, the brilliant artist B<Picasso McGlitterpants>
+creates a sketch of every guest who stops by. The caricature goes through
+several phases before it’s ready to hang on your wall:
+
+=over
+
+=item * Before the sketch is drawn: Picasso sharpens their pencils
+
+=item * While drawing: the artist sneaks in little embellishments
+
+=item * When the sketch is done: Picasso proudly signs their masterpiece
+
+=item * Before handing it to you: the park staff pops it into a fancy frame
+
+=back
+
+Before the sketching starts, Picasso ensures all the materials are in order:
+
+    hook before_template_render => sub {
+        my $tokens = shift;
+
+        # Picasso McGlitterpants sharpens their pencils and sets up the
+        # paper before drawing begins.
+        $tokens->{materials_ready} = 1;
+    };
+
+Template hooks allow you to manipulate data before or after a view
+(i.e., template) is rendered. C<materials_ready> is added as a template
+token before the view gets rendered. That token is made available in the
+template as C<[% materials_ready %]>.
+
+When the sketch is finished, Picasso adds their signature (with extra glitter,
+of course) to make sure the caricature is authentic:
+
+    hook after_template_render => sub {
+        my $content = shift;
+        $$content .= "\n\n-- Signed by Picasso McGlitterpants 🎨✨";
+    };
+
+This happens after the view/template is rendered, but before it is shown
+to the user.
+
+Before the sketch is mounted, the artist sprinkles it with sparkles, making
+sure the presentation twinkles with Danceyland charm:
+
+    hook before_layout_render => sub {
+        my ($tokens, $content) = @_;
+
+        $tokens->{special_effects} = 'sparkles';
+    };
+
+Layout hooks apply after views are rendered, when the layout is going
+to be applied. The C<before_layout_render> hook is run prior to the layout
+being applied. It's a useful place to check for things such as whether or
+not is authorized to view select content.
+
+At the very end, just before the guest receives their caricature, the staff pops
+it into a silvery frame so it’s ready to hang at home:
+
+    hook after_layout_render => sub {
+        my $content = shift;
+
+        $$content = '<div class="silver-frame">' . $$content . "</div>";
+    };
+
+The C<after_layout_render> hook is the last chance to alter content before
+being sent to the browser.
+
+=head3 Error Handling Hooks
+
+Even in Danceyland, sometimes the roller coaster gets stuck at the top, or
+the cotton candy machine makes a little too much fluff. That’s when our
+friendly park attendants step in!
+
+Error hooks let you step in whenever something goes wrong in an application.
+Just like Danceyland staff rushing over with a smile and a toolkit, your
+error hook can log what happened, show a helpful message, or gently guide
+the guest to the right exit.
+
+    hook on_route_exception => sub {
+        my ($error) = @_;
+        warning "Picasso McGlitterpants spilled glitter on the server: $error";
+    };
+
+Or you can catch a general error and provide your own response:
+
+    hook before_error => sub {
+        my ($error) = @_;
+        $error->message("Oops! One of the rides jammed. " .
+            "Please enjoy a free churro while we fix it.");
+    };
+
+Other error hooks include:
+
+=over
+
+=item * init_error
+
+This runs right after a new L<Dancer2::Core::Error> object is built. The new
+error object is passed to the hook as an argument.
+
+=item * after_error
+
+This hook is called right after error is thrown, and receives a
+L<Dancer2::Core::Response> object as an argument.
+
+=item * on_hook_exception
+
+This hook is special, and is only called when an exception is caught in
+another hook, just before logging it and rethrowing it higher.
+
+This hook receives as arguments:
+
+=over
+
+=item * A L<Dancer2::Core::App> object
+
+=item * The error string
+
+=item * The name of the hook where the exception occurred
+
+The hook name is the full hook name (e.g. C<core.app.route_exception>).
+
+=back
+
+If the function provided to C<on_hook_exception> causes an exception itself, then
+this will be ignored (thus preventing a potentially recursive situation).
+However, it is still possible for the function to set a custom response and
+halt it (and optionally die), thus providing a method to render custom content
+in the event of an exception in a hook:
+
+    hook on_hook_exception => sub {
+        my ($app, $error, $hook_name) = @_;
+        $app->response->content("Oh noes! The popcorn machine " .
+            "overheated and overflowed!");
+        $app->response->halt;
+    };
+
+=back
+
+Think of error hooks as the ever-present Danceyland helpers: they
+make sure that when a mishap occurs, guests are cared for and can
+keep smiling on their way to the next attraction.
+
+=head3 File Rendering Hooks
+
+File rendering hooks are triggered when static files are served:
+
+    hook before_file_render => sub {
+        my $file_path = shift;
+        debug "Starting to serve file: $file_path";
+    };
+
+    hook after_file_render => sub {
+        my $response = shift;
+        debug "Finished serving file.";
+    };
+
+=head3 Logging Hooks
+
+Logging hooks can be used to give additional information or context to
+Danceyland maintenance workers when something breaks down, or to ride
+operators to help ensure smooth operation of rides:
+
+    hook 'engine.logger.before' => sub {
+        my ( $logger, $level, @messages ) = @_;
+        push @messages, 'Request ID: ' . vars->{request_id};
+    };
+
+    hook 'engine.logger.after' => sub {
+        my ( $logger, $level, @messages ) = @_;
+        if( $level eq 'error' ) {
+            # Add code to send an email here
+        }
+    };
+
+These hooks are useful when you want to prepend or append information to
+a log message, write messages out in a specific format, or take additional
+action based on message severity.
+
+=head3 Serializer Hooks
+
+Every great visit to Danceyland ends with a souvenir! Serializer hooks
+are the way Danceyland decides how to wrap up your experience before
+sending you home. Maybe you get your caricature rolled up in a tube,
+maybe it’s slipped into a glossy folder, or maybe Picasso McGlitterpants
+mails it to you as a postcard.
+
+That’s what serializers do: they take the "thing" (your response)
+and package it in the right format (JSON, YAML, plain text, etc.)
+so you can carry it with you outside the park.
+
+For example:
+
+    set serializer => 'JSON';
+
+Now, every souvenir is neatly wrapped in shiny JSON paper.
+
+And if you want a custom wrapper, you can hook into the
+serializer process yourself:
+
+    hook before_serializer => sub {
+        my ($content) = @_;
+        debug "Preparing to wrap up: $content";
+    };
+
+    hook after_serializer => sub {
+        my ($serialized) = @_;
+        debug "Souvenir has been wrapped: $serialized";
+    };
+
+So whenever you see serializer hooks, think of the Danceyland
+souvenir shop — the place that makes sure you don’t just have
+a memory, but also a neatly wrapped keepsake to take home.
+
+=head2 Handlers
+
+Handlers are the rides that keep Danceyland running. Dancer2 provides
+several built-in handlers to manage files, pages, and routes. You can
+also create your own handlers to extend the park’s offerings.
+
+=head2 File Handler
+
+The L<Dancer2::Handler::File> component is used to serve static files,
+like images and stylesheets, from the C<public> directory. It comes with
+two hooks; see the L</Hooks> section for more information.
+
+=head2 Auto Page Handler
+
+When a template matches a request, the L<Dancer2::Handler::AutoPage>
+component is used. It automatically renders a template if one exists for
+the requested path.
+
+If someone visits C</about> and there is a template called C<about.tt>,
+the auto page handler will automatically render that template.
+
+=head2 Writing Your Own Handlers
+
+You can create your own handler by consuming the L<Dancer2::Core::Role::Handler>
+role. This allows you to define your own logic for processing routes:
+
+    package MyHandler;
+    use Moo;
+    with 'Dancer2::Core::Role::Handler';
+
+    sub methods { qw(GET) }
+
+    sub regexp { '/custom/:page' }
+
+    sub code {
+        return sub {
+            my $app = shift;
+            my $page = $app->request->params->{page};
+            return "You requested the custom page: $page";
+        };
+    }
+
+    sub register {
+        my ($self, $app) = @_;
+        $app->add_route(
+            method => $_,
+            regexp => $self->regexp,
+            code   => $self->code,
+        ) for $self->methods;
+    }
+
+=head2 Middleware
+
+Middleware in Dancer2 is like the behind-the-scenes magic at Danceyland,
+like security or cleaning staff at Danceyland. It handles tasks between
+the request and response cycles, allowing you to modify or inspect the
+request/response without changing your app code.
+
+You can easily add middleware using Plack, Dancer2’s underlying engine.
+
+=head2 Why Use Middleware Instead of App Logic?
+
+You could, in theory, implement directly in your code everything that a
+middleware does. So why use middlewares? Middlewares allow you to modify
+the request/response cycle without changing your app’s core code. It’s
+useful for:
+
+=over 4
+
+=item *
+
+Managing sessions and cookies.
+
+=item *
+
+Handling authentication.
+
+=item *
+
+Compressing responses or managing headers.
+
+=back
+
+Middleware operates in-between the client’s request and the app’s
+response, providing flexibility and reducing duplication in your
+application logic.
+
+Additionally, you can use middlewares across different code-bases. Given
+best practices, they would not be tied to a particular web application.
+
+=head3 Adding Middlewares
+
+    builder {
+        enable 'Session';
+        enable 'Static', path => qr{^/(images|css)/}, root => './public';
+        app;
+    };
+
+This example uses Plack middleware to manage sessions and serve static files.
+
+=head2 Asynchronous Programming
+
+In Danceyland, we never want our visitors to wait in line! Sometimes, a
+task can take a long time, like fetching data from an external service.
+Asynchronous programming allows you to handle these tasks in the
+background, keeping your app responsive.
+
+Dancer2 supports asynchronous programming to help you manage I/O-bound
+operations more efficiently.
+
+=head2 Why Choose Async Over Blocking?
+
+With async programming, you can handle long-running tasks without
+blocking the rest of your app. This is useful for:
+
+=over 4
+
+=item *
+
+Fetching data from an external API.
+
+=item *
+
+Handling large uploads or downloads.
+
+=item *
+
+Sending notifications or emails.
+
+=back
+
+=head2 Choosing the Right PSGI Server
+
+To use asynchronous programming in Dancer2, your app must be running on
+a PSGI server that supports event loops, like L<Twiggy>. Such servers can
+handle async tasks, unlike traditional PSGI servers that utilize forking
+to handle multiple parallel tasks.
+
+=head2 Sending Content Asynchronously
+
+Dancer2 provides keywords for implementing asynchronous code.
+
+=head3 content
+
+The C<content> keyword sets the response content from within a delayed
+response.
+
+=head3 delayed
+
+Some events at Danceyland, like the grand parade, are worth watching but
+take some time to complete. Similarly, Dancer2 offers the C<delayed> keyword
+to initiate an asynchronous response, allowing you to deliver long-running
+results, or handling long-running operations.
+
+=head2 done
+
+Once everything is set, you can use C<done> to finalize and send the
+response to the visitor.
+
+=head2 flush
+
+To send parts of the response incrementally, C<flush> allows streaming
+content to the client in a delayed response without closing the connection.
+
+=head2 Example: Asynchronous HTTP Request
+
+Here’s how you can fetch data asynchronously in Dancer2. Instead of
+waiting for a response, the request runs in the background and delivers
+the result when it’s ready:
+
+    use Dancer2;
+    use Future::HTTP;
+
+    get '/fetch-ride-status' => sub {
+        delayed {
+            content 'The grand parade is starting!';
+            flush;
+
+            http_get('http://parade-status.com/api/v1/floats')->then( sub {
+                my ($body, $headers) = @_;
+                content $body;
+                flush;
+            });
+
+            content 'The grand parade is finished!';
+            done;
+        };
+    };
+
+In this example, we fetch the status of a ride asynchronously using
+C<http_get>. The C<delayed> keyword defers the response until the
+background request completes. The C<$resume> callback is used to send
+the content back to the visitor once the request finishes.
+
+For a deeper dive, check out these fantastic articles on async programming
+in Dancer2: L<https://advent.perldancer.org/2020/22> and
+L<https://advent.perldancer.org/2020/23>.
+
+=cut

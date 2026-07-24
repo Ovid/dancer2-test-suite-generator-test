@@ -1,0 +1,235 @@
+# PODNAME: Dancer2::Manual::Deployment
+# ABSTRACT: A non-exhaustive guide to put your Dancer2 app into production
+
+__END__
+
+=pod
+
+=encoding UTF-8
+
+=head1 Dancer2 Deployment Guide
+
+Deploying a Dancer2 application involves choosing the right method for
+running your app in production. This guide walks you through the most
+common deployment options, from using the development web server to
+setting up robust production configurations.
+
+=head1 Stand-Alone Development Server
+
+Dancer2 applications come with a built-in development server that is
+useful for local testing and debugging. This server is not suitable for
+production environments due to its lack of performance optimizations and
+scalability.
+
+=head2 Running the Stand-Alone Server with C<plackup>
+
+To start your application with the built-in development server, run the
+following command from the directory containing your application:
+
+    plackup -r bin/app.psgi
+
+The C<-r> flag enables live reloading of the application code, which is
+handy during development.
+
+For a quick test, navigate to L<http://localhost:5000> in your browser.
+This method is great for development but should not be used in production.
+
+=head3 Auto reloading with plackup and Shotgun
+
+There may be circumstances where Plack's built-in reloader won't work for
+you, be it for the way it looks for changes, or because there are many
+directories you need to monitor, or you want to reload the application any
+time one of the modules in Perl's F<lib/> path changes.
+L<Plack::Loader::Shotgun> makes this easy by recompiling the application
+on every request.
+
+To use Shotgun, specify it using the loader argument to C<plackup (-L)>:
+
+    plackup -L Shotgun bin/app.psgi
+
+The Shotgun, while effective, can quickly cause you performance issues, even
+during the development phase of your application. As the number of plugins
+you use in your application grows, as the number of static resources (images,
+etc.) grows, the more requests your server process needs to handle. Since
+each request recompiles the application, even simple page refreshes can get
+unbearably slow over time. Use with caution.
+
+You can bypass Shotgun's auto-reloading of specific modules with the
+C<-M> switch:
+
+    plackup -L Shotgun -M<MyApp::Foo> -M<MyApp::Bar> bin/app.psgi
+
+On Windows, the Shotgun loader is known to cause huge memory leaks in a
+fork-emulation layer. If you are aware of this and still want to run the
+loader, please use the following command:
+
+    PLACK_SHOTGUN_MEMORY_LEAK=1 plackup -L Shotgun bin\app.psgi
+
+B<Please note:> if you are using Dancer 2's asynchronous capabilities, using
+Shotgun will kill Twiggy. If you need async processing, consider an
+alternative to Shotgun.
+
+=head1 Running a PSGI-Based Web Server
+
+For production environments, use a PSGI-compatible web server. These
+servers provide improved performance, scalability, and better resource
+management.
+
+=head2 Using C<plackup>
+
+You can use C<plackup> in production by configuring it to run without
+live reloading and with proper performance settings:
+
+    plackup -E production --host 0.0.0.0 --port 5000 bin/app.psgi
+
+This approach is simple but lacks advanced features like process
+management and load balancing.
+
+=head2 Using Starman
+
+L<Starman> is a high-performance, pre-forking PSGI server for Perl
+applications. It is designed for production environments.
+
+To run your app with Starman:
+
+    plackup -s Starman --workers 5 --port 5000 bin/app.psgi
+
+The C<--workers> flag specifies the number of worker processes to handle
+requests. Adjust this based on your server's resources.
+
+=head2 Using Gazelle
+
+L<Gazelle|https://metacpan.org/pod/Gazelle> is another PSGI server that
+focuses on long-lived connections and minimal overhead.
+
+Run your app with Gazelle like this:
+
+    plackup -s Gazelle -p 5000 bin/app.psgi
+
+Gazelle provides options for optimizing keep-alive connections and
+handling large numbers of requests efficiently.
+
+=head2 Using Server::Starter for Zero-Downtime Deployments
+
+L<Server::Starter> provides you with a superdaemon and instance script
+for managing PSGI-based Perl application servers. The superdaemon is
+responsible for starting new processes and shutting down old ones. It
+provides hot-deployment capability by watching for restart requests and
+ensuring new processes successfully start up before terminating the old
+processes. F<start_server> is the command-line program that allows you
+to interact with the superdaemon.
+
+You can manage most PSGI-based app server with F<start_server>:
+
+    start_server --port 5000  -- plackup -s Gazelle -a app.psgi
+
+=head2 Using uWSGI
+
+L<uWSGI|https://uwsgi-docs.readthedocs.io/en/latest/> is a robust
+application server that supports PSGI. It is written in C and provides
+excellent performance.
+
+For configuring uWSGI with a Dancer2 application, refer to the official
+documentation: L<https://uwsgi-docs.readthedocs.io/en/latest/Perl.html>.
+
+A basic configuration might look like this:
+
+    uwsgi --http :5000 --plugin psgi --psgi bin/app.psgi
+
+uWSGI is powerful and supports features like process management, load
+balancing, and integration with NGINX.
+
+=head1 Running Behind a Reverse Proxy
+
+Using another webserver like NGINX to reverse proxy your application can
+improve the scalability and security of your application. A reverse proxy
+handles incoming requests, forwards them to your PSGI server, and manages
+features like SSL termination and caching. Reverse proxies can help
+improve the performance of your applications by serving static content
+more efficiently than your application can.
+
+When running your Dancer2 application behind a reverse proxy, make sure
+to set the C<behind_proxy> configuration setting to make sure all URLs
+and headers are set properly:
+
+    behind_proxy: 1
+
+For more information, see L<the configuration guide|Dancer2::Manual::Config/behind_proxy (boolean)>.
+
+=head2 Example: Using NGINX with Starman
+
+Here’s a basic NGINX configuration for a Dancer2 app running on Starman:
+
+    server {
+        listen 80;
+        server_name example.com;
+
+        location / {
+            proxy_pass http://127.0.0.1:5000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+Start NGINX and Starman, and your app will be accessible through the proxy.
+
+=head2 Example: Using NGINX with uWSGI
+
+For uWSGI, the NGINX configuration looks like this:
+
+    server {
+        listen 80;
+        server_name example.com;
+
+        location / {
+            include uwsgi_params;
+            uwsgi_pass 127.0.0.1:5000;
+        }
+    }
+
+This setup routes requests from NGINX to your uWSGI server.
+
+=head1 Running Through CGI/FastCGI
+
+While PSGI servers are recommended, Dancer2 can also run through CGI or
+FastCGI, typically with Apache.
+
+=head2 Running as a CGI Script
+
+In a CGI setup, requests are processed one at a time, making it
+unsuitable for high-traffic environments; a new instance of your
+application is compiled and served on every request. To enable CGI:
+
+=over 4
+
+=item 1. Place your C<app.psgi> file in a directory accessible to your Apache server.
+
+=item 2. Configure Apache to execute the PSGI script as a CGI:
+
+=back
+
+    <VirtualHost *:80>
+        ServerName example.com
+
+        DocumentRoot /path/to/your/app/public
+        ScriptAlias / /path/to/your/app/bin/app.psgi
+    </VirtualHost>
+
+=head2 Running as a FastCGI Script
+
+FastCGI is a more efficient alternative to CGI. Install a PSGI-to-FastCGI adapter like C<FCGI::PSGI> and configure Apache:
+
+    <VirtualHost *:80>
+        ServerName example.com
+
+        DocumentRoot /path/to/your/app/public
+        <Location />
+            SetHandler fcgid-script
+            Options +ExecCGI
+            FCGIWrapper /path/to/your/app/bin/app.psgi
+        </Location>
+    </VirtualHost>
+
+=cut
+

@@ -142,15 +142,28 @@ subtest 'a missing config directory is not an error' => sub {
     local $ENV{DANCER_ENVDIR};
     delete local $ENV{DANCER_ENVDIR};
 
-    my $config = Dancer2::ConfigReader->new(
-        location       => $empty->stringify,
-        environment    => 'production',
-        default_config => { from_default => 'default_value' },
-    )->config;
+    # 'from_default' is not a key Dancer2 knows, and strict_config defaults to
+    # on, so reading this warns. Captured and asserted rather than silenced,
+    # because it pins something worth knowing: the strict-key check inspects
+    # the whole merged config, including whatever arrived via default_config,
+    # not only what was read from files.
+    my @warnings;
+    my $config = do {
+        local $SIG{__WARN__} = sub { push @warnings, $_[0] };
+        Dancer2::ConfigReader->new(
+            location       => $empty->stringify,
+            environment    => 'production',
+            default_config => { from_default => 'default_value' },
+        )->config;
+    };
 
     is( $config->{from_default}, 'default_value',
         'the default config comes through when there are no files' );
     is( $config->{appname}, undef, 'and nothing is invented' );
+
+    is( scalar @warnings, 1, 'exactly one warning is emitted' );
+    like( $warnings[0], qr/Unknown configuration key 'from_default'/,
+        'and it is the strict-key check reaching a default_config key' );
 };
 
 done_testing();

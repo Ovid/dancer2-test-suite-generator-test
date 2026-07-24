@@ -99,7 +99,7 @@ subtest 'Content-Type chooses the incoming format' => sub {
         'so a JSON body under a bogus content type is still read' );
 };
 
-subtest 'Accept wins over Content-Type when serializing (known bug)' => sub {
+subtest 'Accept wins over Content-Type when serializing (known bug F3)' => sub {
 
     # F3. The module's DESCRIPTION states one priority order for choosing a
     # format: the request's Content-Type, then its Accept, then a JSON
@@ -143,7 +143,7 @@ subtest 'Accept wins over Content-Type when serializing (known bug)' => sub {
     like( $mirror->content, qr/^---\n/, 'BUG: with a YAML body' );
 };
 
-subtest 'a charset parameter on Content-Type breaks the lookup (known bug)' => sub {
+subtest 'a charset parameter on Content-Type breaks the lookup (known bug F8)' => sub {
 
     # F8. The mapping is an exact hash-key match on the raw header value
     # (Dancer2/Serializer/Mutable.pm:96-97), so 'text/x-yaml; charset=utf-8'

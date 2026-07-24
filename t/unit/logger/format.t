@@ -179,7 +179,7 @@ subtest 'an unrecognised block type warns and renders "-"' => sub {
         'naming the block and its type' );
 };
 
-subtest '%D is documented but not implemented (known bug)' => sub {
+subtest '%D is documented but not implemented (known bug F2)' => sub {
 
     # F2. Dancer2::Core::Role::Logger's own POD lists "%D - timer" among the
     # log_format codes, but map_chars_to_subs returns no 'D' entry, so %D falls

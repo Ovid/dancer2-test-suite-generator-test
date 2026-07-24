@@ -240,7 +240,7 @@ subtest 'the default static handler runs ahead of the application' => sub {
     }
 };
 
-subtest 'a null byte in a static path is survived, not served' => sub {
+subtest 'a null byte in a static path is survived, not served (F5)' => sub {
     my $test = Plack::Test->create( StaticApp->to_app );
 
     my @warnings;
@@ -314,7 +314,7 @@ subtest 'Dancer2::Handler::File serves files as an ordinary route' => sub {
     }
 };
 
-subtest 'Dancer2::Handler::File does not contain ../ paths (known bug)' => sub {
+subtest 'Dancer2::Handler::File does not contain ../ paths (known bug F4)' => sub {
 
     # This pins a security hole as it currently stands. Dancer2::Handler::File
     # joins public_dir with the request path and never checks that the result

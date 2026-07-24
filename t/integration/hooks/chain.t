@@ -142,7 +142,7 @@ subtest 'halt in a before hook stops the whole chain' => sub {
         'no later hook and no route runs after halt' );
 };
 
-subtest 'a halting hook_exception handler lets the route run anyway (known bug)' => sub {
+subtest 'a halting hook_exception handler lets the route run anyway (known bug F9)' => sub {
 
     # F9. The wrapper captures is_halted, then calls $app->cleanup, then
     # returns without croaking because the handler halted. But cleanup
@@ -196,7 +196,7 @@ subtest 'a halting hook_exception handler lets the route run anyway (known bug)'
     );
 };
 
-subtest 'to_app compiles the hooks again every time (known bug)' => sub {
+subtest 'to_app compiles the hooks again every time (known bug F10)' => sub {
 
     # F10. finish() calls compile_hooks(), which wraps each hook and puts the
     # wrappers back via replace_hook - so a second to_app() wraps the already

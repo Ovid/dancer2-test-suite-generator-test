@@ -113,7 +113,7 @@ subtest 'a layout cannot be requested as a page' => sub {
     }
 };
 
-subtest 'the layout guard is case-sensitive (known bug)' => sub {
+subtest 'the layout guard is case-sensitive (known bug F11)' => sub {
 
     # F11. The guard compares the request path against the layout directory
     # name with a case-sensitive match (Dancer2/Handler/AutoPage.pm:38). Where

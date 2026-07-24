@@ -173,7 +173,7 @@ subtest 'no charset is appended to a non-text content type' => sub {
         'with Content-Length counting those characters' );
 };
 
-subtest 'replacing the content after the first set leaves it unencoded (known bug)' => sub {
+subtest 'replacing the content after the first set leaves it unencoded (known bug F6)' => sub {
 
     # This pins a real defect. is_encoded latches on the first assignment,
     # and encode_content returns early whenever it is set
@@ -292,7 +292,7 @@ subtest 'CR and LF are stripped from header values' => sub {
         'no element of the PSGI header array contains CR or LF' );
 };
 
-subtest 'CR and LF survive in a header name (known bug)' => sub {
+subtest 'CR and LF survive in a header name (known bug F7)' => sub {
 
     # headers_to_array strips CR and LF from each header *value*
     # (Dancer2/Core/Response.pm:70-71, commented "remove CR and LF since the

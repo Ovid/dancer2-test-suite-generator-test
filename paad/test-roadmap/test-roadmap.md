@@ -4,9 +4,9 @@ A phased plan for building this project a test suite that catches real
 regressions. Work one phase at a time; each phase says what breakage it would
 turn red for.
 
-The companion document `docs/test-suite-analysis.md` records the state of the
+The companion document `paad/test-roadmap/test-suite-analysis.md` records the state of the
 suite when this plan was written, and the list of stand-ins and fixtures the
-plan expects to use. `docs/test-roadmap-findings.md` lists code that looks
+plan expects to use. `paad/test-roadmap/test-roadmap-findings.md` lists code that looks
 wrong and is deliberately *not* being fixed by these tests.
 
 ## Decisions

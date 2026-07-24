@@ -1,6 +1,6 @@
 # Test suite analysis — Dancer2
 
-Companion to `docs/test-roadmap.md`. This file records the state of the test
+Companion to `paad/test-roadmap/test-roadmap.md`. This file records the state of the test
 suite when the roadmap was written, and the stand-ins and fixtures the plan
 expects to use.
 

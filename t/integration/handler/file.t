@@ -19,7 +19,7 @@ use Path::Tiny ();
 #
 # Where they disagree, the disagreement is asserted rather than smoothed over,
 # and the one case that is a security hole is recorded in
-# docs/test-roadmap-findings.md with a pointer back to the test below.
+# paad/test-roadmap/test-roadmap-findings.md with a pointer back to the test below.
 
 # --- fixture tree ---------------------------------------------------------
 #
@@ -257,7 +257,7 @@ subtest 'a null byte in a static path is survived, not served' => sub {
     # asks Path::Tiny about an attacker-supplied path containing a NUL, and
     # Path::Tiny warns. Dancer2::Handler::File rejects the same input outright
     # with a 400 (see the subtest below), so this path is the lenient one.
-    # Recorded in docs/test-roadmap-findings.md.
+    # Recorded in paad/test-roadmap/test-roadmap-findings.md.
     is( scalar @warnings, 1, 'exactly one warning is emitted' );
     like( $warnings[0], qr/Invalid \\0 character/,
         'and it is the NUL-in-pathname warning from the file check' );
@@ -326,7 +326,7 @@ subtest 'Dancer2::Handler::File does not contain ../ paths (known bug)' => sub {
     # containment check is added, this subtest is what will go red, and the
     # expectations below become 403 / no disclosure.
     #
-    # Filed in docs/test-roadmap-findings.md.
+    # Filed in paad/test-roadmap/test-roadmap-findings.md.
 
     my $test = Plack::Test->create( HandlerFileApp->to_app );
 

@@ -355,3 +355,92 @@ Pinned by:   Phase 10 — the subtest "the layout guard is case-sensitive (known
              subtest "a layout cannot be requested as a page" pins the half that
              works, including the indirect spellings, so a fix that breaks those
              would be caught too.
+
+## F12 — `dancer2 gen` names the application directory `My::App`, colons and all
+
+Where:       lib/Dancer2/CLI/Gen.pm:161 and lib/Dancer2/CLI/Gen.pm:163-165
+Behavior:    `dancer2 gen -a Other::App --path DIR` (no `-d`) creates the
+             directory `DIR/Other::App/`, with the colons in the directory
+             name, rather than `DIR/Other-App/`. Reproduced by running the
+             command; the module inside is written correctly to
+             `lib/Other/App.pm`.
+Contradicts: the generator's own dashed-name machinery. `_get_app_path`
+             (lib/Dancer2/CLI.pm:33-36) exists to turn `Other::App` into
+             `Other-App`, and Gen.pm:161 calls it — then Gen.pm:163-165
+             unconditionally throws that result away, because the `directory`
+             option (Gen.pm:30-38) defaults to the raw application name. The
+             two spellings then disagree inside a single generated app: the
+             directory is `Other::App` while the `Makefile.PL` the same run
+             produced cleans `Other-App-*` (from `cleanfiles`, Gen.pm:185,
+             via `_get_dashed_name`, lib/Dancer2/CLI.pm:48-52).
+Action:      decide which spelling is intended. If it is the dashed one, give
+             the `directory` option no default and fall back to
+             `_get_app_path`'s result at Gen.pm:163; if it is the raw name,
+             delete the now-dead `_get_app_path` call at Gen.pm:161 and settle
+             what `Makefile.PL` should clean.
+Pinned by:   Phase 15 — the subtest "the application directory keeps the :: from
+             -a (known bug F12)" in t/e2e/cli/gen.t pins the current directory
+             name and the disagreement with Makefile.PL.
+
+## F13 — The line appended to a generated `MANIFEST.SKIP` is an absolute path
+
+Where:       lib/Dancer2/CLI/Gen.pm:398-405 (`_add_to_manifest_skip`)
+Behavior:    Every generated application's `MANIFEST.SKIP` ends with a line
+             built from the full filesystem path it was generated into — e.g.
+             `^/tmp/xYz/myapp-` — because `$dir` there is the application path,
+             not the distribution name. Reproduced by running the generator
+             into a temporary directory.
+Contradicts: the rest of the same file, and the sibling file written by the
+             same run. Every other pattern in the generated `MANIFEST.SKIP`
+             (from share/skel/default/MANIFEST.SKIP) is repo-relative —
+             `^.gitignore`, `^.svn\/`, `^blib/` — as `ExtUtils::Manifest`
+             expects, since it matches these against paths relative to the
+             distribution root. The intended target is evidently the built
+             tarball directory, which the `Makefile.PL` generated alongside it
+             names in dashed, relative form: `clean => { FILES =>
+             'MyApp-App-*' }`.
+Action:      append the distribution name rather than the path at
+             Gen.pm:403 — the dashed name from `_get_dashed_name`
+             (lib/Dancer2/CLI.pm:48-52) is already computed for `cleanfiles`
+             — so the line reads `^MyApp-App-` and can actually match.
+Pinned by:   Phase 15 — the subtest "MANIFEST.SKIP gets an absolute path
+             pattern (known bug F13)" in t/e2e/cli/gen.t pins the current
+             absolute-path line.
+
+## F14 — The skeleton's `environments/` configs are ignored by git and missing from a fresh clone
+
+Where:       share/.gitignore:4
+Behavior:    `share/skel/default/environments/development.yml` and
+             `production.yml` exist in a working copy but have never been
+             committed — `git log -- 'share/skel/default/environments*'` is
+             empty and `git ls-files share/skel/default/environments` lists
+             nothing, because `share/.gitignore` line 4 ignores
+             `environments/`. A fresh clone of this repository therefore has no
+             `share/skel/default/environments/` at all, and `dancer2 gen` run
+             from that clone produces an application with no per-environment
+             config files. Confirmed by generating into a clean `git worktree`:
+             the generated app has `config.yml` but no `environments/`.
+Contradicts: the skeleton's own `config.yml`, whose second line tells the user
+             *"env-related settings should go to environments/$env.yml"*
+             (share/skel/default/config.yml:2) — a file the generator cannot
+             produce from a clean checkout. Note also that `share/.gitignore`
+             is not meant to govern this repository at all: it is shipped data,
+             copied into the user's new application by `_check_git`
+             (lib/Dancer2/CLI/Gen.pm:224), and its `sessions/`, `logs/`,
+             `environments/` entries describe a *running Dancer2 app*. Living at
+             `share/.gitignore` makes git apply it to this repo's own `share/`
+             tree as a side effect.
+Action:      stop the shipped template from acting as a live ignore file — the
+             usual fix is to store it under a name git does not honour (e.g.
+             `share/gitignore` or `share/skel/default/+gitignore`, following the
+             `+` convention Gen.pm already uses for generated files) and adjust
+             Gen.pm:224 — then commit the two `environments/*.yml` files so a
+             clone can generate them. Note that `dzil build` uses plain
+             `GatherDir`, which reads the filesystem rather than the git index,
+             so releases cut from a working copy that happens to have these
+             files have been shipping them; the gap only shows in a fresh
+             clone.
+Pinned by:   Phase 15 — the subtest "the skeleton environment configs are not in
+             git (known bug F14)" in t/e2e/cli/gen.t pins the ignore rule and
+             the absence from the index. The two files are deliberately left out
+             of that test's required-files list until this is fixed.

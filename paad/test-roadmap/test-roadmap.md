@@ -151,7 +151,7 @@ Catches:  a route parameter failing to take precedence over a query or body
           clone losing already-decoded body parameters.
 Produces: t/unit/core/request.t
 Branch:   ovid/test-roadmap
-Landed:   2026-07-24 3139f55 (drop a state transition; negate a condition;
+Landed:   2026-07-24 a3f584c (drop a state transition; negate a condition;
           alter a constant)
 ## Phase 6: Response encoding and PSGI conversion
 
@@ -164,8 +164,10 @@ Catches:  text content being character-encoded twice; a charset being
           reaching the PSGI array unsanitised (a response-splitting hole).
 Produces: t/unit/core/response.t
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F6 (content assigned twice is never encoded),
+          F7 (CRLF survives in a header name)
+Landed:   2026-07-24 dc55ded (drop a state transition; negate a condition;
+          off-by-one a boundary; alter a constant)
 ## Phase 7: Serializer round-trip and failure handling
 
 Tier:     integration

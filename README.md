@@ -1,8 +1,9 @@
-<p align="center">
-  <a href="https://perldancer.org/">
-    <img src="https://crome-plated.com/images/dancer-logo.png" alt="Perl Dancer logo">
-  </a>
-</p>
+# Do Not Use This Code
+
+This repo is to test my [test suite generator](https://github.com/ovid/test-suite-generator) that will
+eventually be included in [PAAD](https://github.com/ovid/paad).
+
+---
 
 <p align="center">
   Dancer2 is a lightweight yet powerful web application framework

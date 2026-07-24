@@ -61,7 +61,9 @@ Tiers (run | coverage):
 - e2e:
   `prove -lr t/e2e`
   | (none — this tier runs the `dancer2` command-line tool as a separate
-  process, which `Devel::Cover` cannot follow reliably)
+  process, which `Devel::Cover` cannot follow reliably. Confirmed with the
+  developer while executing Phase 15: run this tier without coverage rather
+  than wiring `Devel::Cover` into the child process. Not re-asked.)
 
 Both coverage commands above were run and confirmed working before being
 recorded here. `cover_db/` is already git-ignored.
@@ -282,7 +284,8 @@ Catches:  a request that no route in the first app matches never being
           than refusing; a mounted app's `uri_for` dropping its mount path.
 Produces: t/integration/dispatch/multiapp.t
 Branch:   ovid/test-roadmap
-Landed:
+Findings: F1 (uri_for_route refuses a route parameter whose value is 0)
+Landed:   2026-07-24 b5bfab6 (drop a state transition x3; alter a constant x2)
 
 ## Phase 15: The `dancer2 gen` scaffold produces a working application
 
@@ -294,4 +297,9 @@ Catches:  the generated application failing to compile; `share/skel` losing a
           directory or under the wrong package name.
 Produces: t/e2e/cli/gen.t
 Branch:   ovid/test-roadmap
-Landed:
+Findings: F12 (the generated directory keeps the :: from -a),
+          F13 (MANIFEST.SKIP is appended an absolute path pattern),
+          F14 (the skeleton's environments/ configs are git-ignored and absent
+          from a fresh clone)
+Landed:   2026-07-24 b2e6268 (alter a constant x2; drop a state transition;
+          skeleton file deleted)

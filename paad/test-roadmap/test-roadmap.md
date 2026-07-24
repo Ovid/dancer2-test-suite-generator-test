@@ -180,8 +180,9 @@ Catches:  a malformed JSON request body returning 500 instead of 400; a
           being run through the deserializer.
 Produces: t/integration/serializer/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F3 (Accept decides the outgoing format, against the docs),
+          F8 (a charset parameter defeats the Mutable format lookup)
+Landed:   2026-07-24 b70a10b (alter a constant; drop a state transition)
 ## Phase 8: Error rendering and sensitive-value censoring
 
 Tier:     integration

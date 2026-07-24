@@ -4,9 +4,9 @@ A phased plan for building this project a test suite that catches real
 regressions. Work one phase at a time; each phase says what breakage it would
 turn red for.
 
-The companion document `docs/test-suite-analysis.md` records the state of the
+The companion document `paad/test-roadmap/test-suite-analysis.md` records the state of the
 suite when this plan was written, and the list of stand-ins and fixtures the
-plan expects to use. `docs/test-roadmap-findings.md` lists code that looks
+plan expects to use. `paad/test-roadmap/test-roadmap-findings.md` lists code that looks
 wrong and is deliberately *not* being fixed by these tests.
 
 ## Decisions
@@ -151,8 +151,8 @@ Catches:  a route parameter failing to take precedence over a query or body
           clone losing already-decoded body parameters.
 Produces: t/unit/core/request.t
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 3139f55 (drop a state transition; negate a condition;
+          alter a constant)
 ## Phase 6: Response encoding and PSGI conversion
 
 Tier:     unit

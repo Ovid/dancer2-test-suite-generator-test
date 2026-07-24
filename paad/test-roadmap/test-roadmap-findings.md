@@ -1,6 +1,6 @@
 # Findings — code that looks wrong
 
-Things noticed while planning the test suite in `docs/test-roadmap.md`. **None
+Things noticed while planning the test suite in `paad/test-roadmap/test-roadmap.md`. **None
 of these are being fixed as part of writing tests.** Pinning down what a system
 currently does and changing what it does are two separate jobs, and mixing them
 means you can no longer tell a real regression from an intended change.

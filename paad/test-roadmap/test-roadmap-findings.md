@@ -444,3 +444,37 @@ Pinned by:   Phase 15 — the subtest "the skeleton environment configs are not 
              git (known bug F14)" in t/e2e/cli/gen.t pins the ignore rule and
              the absence from the index. The two files are deliberately left out
              of that test's required-files list until this is fixed.
+
+## F15 — `dancer2 gen -g` dies calling a method on a string
+
+Where:       lib/Dancer2/CLI/Gen.pm:227 (`_check_git`)
+Behavior:    `dancer2 gen -a G::App --path DIR -d gapp -g` writes the whole
+             application, then dies with
+             *"Can't locate object method \"absolute\" via package
+             \"DIR/gapp\" (perhaps you forgot to load \"DIR/gapp\"?) at
+             lib/Dancer2/CLI/Gen.pm line 227"* and exits 255. The same happens
+             for `-r <uri>`, which implies `-g`. Reproduced against an
+             unmodified checkout of this branch in a throwaway `git worktree`,
+             so it is not an artifact of a dirty tree. The user is left with a
+             generated application, no git repository, no `.gitignore`, and a
+             stack-shaped error instead of the "Your new application is ready"
+             banner — `_check_git` is called from `run` (Gen.pm:196) after the
+             files have already been copied.
+Contradicts: the neighbouring line in the same hash the value comes from.
+             `_check_git` takes its path from `$vars->{apppath}`
+             (Gen.pm:223), which `run` stored as a plain string:
+             `apppath => $app_path->stringify` (Gen.pm:182). The very next
+             line keeps the `Path::Tiny` object for exactly this purpose:
+             `appdir => $app_path->absolute->stringify` (Gen.pm:183). So one
+             line of `run` records that the object is needed to get an
+             absolute path, and `_check_git` then calls `->absolute` on the
+             stringified one.
+Action:      use the absolute path `run` already computed — read
+             `$vars->{appdir}` at Gen.pm:227 instead of calling `->absolute`
+             on `$vars->{apppath}` — or re-wrap with `path( $app_path )`.
+             Note `$app_path` is also interpolated into the die message on the
+             next line, so it is wanted as a string there.
+Pinned by:   nothing yet. Phase 15's tests never pass `-g`, so this is
+             unguarded: `t/e2e/cli/gen.t` would stay green through a fix or a
+             further regression here. Worth a subtest once the behavior is
+             settled, since the fix changes what a `-g` run does.

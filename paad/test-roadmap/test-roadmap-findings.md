@@ -198,3 +198,41 @@ Pinned by:   Phase 6 — the subtest "CR and LF survive in a header name (known
              turns it red. The companion subtest "CR and LF are stripped from
              header values" pins the half that already works, so a fix that
              breaks the value path would be caught too.
+
+## F8 — A `charset` parameter on `Content-Type` defeats the `Mutable` serializer's format lookup
+
+Where:       lib/Dancer2/Serializer/Mutable.pm:96-97
+Behavior:    `POST` with `Content-Type: text/x-yaml` and the body `---\na: 1\n`
+             is deserialized as YAML and answered 200. The identical request
+             with `Content-Type: text/x-yaml; charset=utf-8` is answered **400**.
+             The lookup is an exact hash-key match on the raw header value
+             (`$self->mapping->{$value}` where
+             `$value = $self->request->header($method)`), so the parameter makes
+             the key miss, the fallback selects JSON, and JSON is then handed a
+             YAML body and fails the request.
+             The same miss happens on `Accept`: `Accept: text/x-yaml;
+             charset=utf-8` silently returns JSON instead of YAML.
+             JSON escapes notice only by accident — the fallback when the lookup
+             misses *is* JSON, so `application/json; charset=utf-8` still works
+             and hides the defect for the most common case.
+Contradicts: this distribution elsewhere treats a content-type header as a type
+             plus separable parameters. `lib/Dancer2/Core/Response.pm:169` calls
+             `$self->headers->content_type_charset` precisely to split the
+             charset off the type, and `HTTP::Headers`' own `content_type`
+             accessor (used throughout Plack, on which this distribution
+             depends) strips parameters and lowercases. `Mutable.pm:96` instead
+             uses the whole raw header, parameters included, as a hash key.
+             Separately, the module's own documented mapping table lists bare
+             content types (`text/x-yaml`, `application/json`, ...), naming them
+             "content types" rather than exact header values.
+Action:      normalise before the lookup — split the header on `;`, trim, and
+             lowercase (or read it through `HTTP::Headers`' `content_type`
+             accessor, which already does this) — then match against the
+             mapping. Note this interacts with F3: both live in
+             `_get_content_type`, so fixing them together is likely cheaper than
+             separately.
+Pinned by:   Phase 7 — the subtest "a charset parameter on Content-Type breaks
+             the lookup (known bug)" in t/integration/serializer/mutable.t pins
+             the 400, the silent JSON fallback on `Accept`, and the control case
+             that works without the parameter. Normalising the lookup turns it
+             red; that red is the fix.

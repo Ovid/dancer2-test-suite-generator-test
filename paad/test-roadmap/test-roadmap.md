@@ -240,8 +240,8 @@ Catches:  an environment-specific config failing to override the base config,
           being accepted silently.
 Produces: t/unit/configreader/
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 7631aac (alter a constant; flip a comparison;
+          negate a condition)
 ## Phase 12: Cookie and time-expression formatting
 
 Tier:     unit
@@ -254,8 +254,8 @@ Catches:  `expires => '2 hours'` emitting the literal string instead of a GMT
           emitting `HttpOnly`.
 Produces: t/unit/core/cookie.t
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 c91c647 (negate a condition; drop a state transition;
+          alter a constant; flip a comparison)
 ## Phase 13: Logger level filtering and message formatting
 
 Tier:     unit
@@ -267,8 +267,9 @@ Catches:  a message below the configured level still being emitted (or one at
           `%{Header}h` lookup failing to read the named request header.
 Produces: t/unit/logger/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F2 (%D is documented as a log format code but not implemented)
+Landed:   2026-07-24 0036308 (flip a comparison; alter a constant;
+          drop a state transition; negate a condition)
 ## Phase 14: Multi-app dispatch and URL generation
 
 Tier:     integration

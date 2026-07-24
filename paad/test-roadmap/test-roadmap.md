@@ -224,8 +224,9 @@ Catches:  `layout => 0` in the options failing to suppress the layout, or a
           directory as if it were a page.
 Produces: t/integration/template/
 Branch:   ovid/test-roadmap
-Landed:
-
+Findings: F11 (the AutoPage layout guard is case-sensitive)
+Landed:   2026-07-24 4776346 (alter a constant; negate a condition;
+          drop a state transition; off-by-one a boundary)
 ## Phase 11: Configuration loading, merging, and strict-key warnings
 
 Tier:     unit

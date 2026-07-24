@@ -240,8 +240,8 @@ Catches:  an environment-specific config failing to override the base config,
           being accepted silently.
 Produces: t/unit/configreader/
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 7631aac (alter a constant; flip a comparison;
+          negate a condition)
 ## Phase 12: Cookie and time-expression formatting
 
 Tier:     unit

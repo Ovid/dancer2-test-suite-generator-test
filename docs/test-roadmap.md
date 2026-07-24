@@ -136,8 +136,8 @@ Catches:  session data surviving `destroy_session`; `change_session_id`
           longer exists blowing up instead of starting a fresh session.
 Produces: t/integration/session/lifecycle.t
 Branch:   ovid/test-roadmap
-Landed:
-
+Landed:   2026-07-24 71747d6 (drop a state transition; flip a comparison;
+          negate a condition)
 ## Phase 5: Request parameter decoding and precedence
 
 Tier:     unit

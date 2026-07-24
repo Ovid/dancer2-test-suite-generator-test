@@ -79,3 +79,57 @@ Action:      decide which order is correct. Arguably `Accept` *is* the right
              docs currently cannot both be right.
 Pinned by:   Phase 7 — its tests lock in the current "`Accept` wins when
              serializing" behavior.
+
+## F4 — `Dancer2::Handler::File` serves files from outside `public_dir`
+
+Where:       lib/Dancer2/Handler/File.pm:98-105
+Behavior:    With the `File` route handler enabled
+             (`route_handlers: [[ File => { public_dir => ... } ]]`), a request
+             for `/../secret.txt` is answered `200` with the contents of a file
+             one directory above `public_dir`. The handler joins `public_dir`
+             with the request path and then only asks whether the result is a
+             readable file — it never asks whether the result is still inside
+             `public_dir`. `Path::Tiny::path` does not collapse `..`, so the
+             joined path escapes and `-f` is happy with it.
+Contradicts: two places in this same distribution:
+             (a) `lib/Dancer2/Core/App.pm:1180-1182`, the `send_file` code path,
+             which performs exactly the missing check — commented "We need to
+             check whether they are trying to access a directory outside their
+             scope" — and answers 403; and
+             (b) `lib/Dancer2/Handler/File.pm:100` itself:
+             `return $self->standard_response( $app, 403 ) if !defined
+             $file_path_str;` — a 403 guard on the result of
+             `Path::Tiny::stringify`, which never returns undef. That branch is
+             unreachable, so the containment refusal the code appears to make is
+             never actually made.
+Action:      decide whether line 100's dead 403 guard was meant to be the
+             containment check. If so, replace it with the same test
+             `send_file` uses — `$dir->realpath->subsumes($file_path)` — so
+             both file-serving paths agree.
+Pinned by:   Phase 3 — the subtest "Dancer2::Handler::File does not contain ../
+             paths (known bug)" in t/integration/handler/file.t locks in the
+             current 200-and-disclose behavior. Adding the check turns that
+             subtest red; that red is the fix landing, not a regression.
+
+## F5 — The default static handler warns and 404s on a NUL in the path where `Handler::File` returns 400
+
+Where:       lib/Dancer2/Core/App.pm:1587-1594
+Behavior:    A request for `/hello.txt\0.png` against an application using the
+             default static handler emits a warning from `Path::Tiny` —
+             `Invalid \0 character in pathname for ftis: .../hello.txt\0.png` —
+             and is then answered `404` by the application. The warning comes
+             from the middleware's file-existence condition calling
+             `->child( $env->{PATH_INFO} )->is_file` on the unvalidated path.
+             Nothing is disclosed, but an attacker-supplied path reaches the
+             server's log as a warning on every such request.
+Contradicts: lib/Dancer2/Handler/File.pm:90-92, the other static-file path in
+             this distribution, which checks `$path =~ /\0/` first and answers
+             `400 Bad Request` without touching the filesystem.
+Action:      decide which of the two responses is correct for a NUL-bearing
+             path and make both paths agree — most likely by moving the
+             existing `/\0/` check ahead of the `is_file` condition in
+             `App::to_app` so the request is rejected before Path::Tiny is
+             asked about it.
+Pinned by:   Phase 3 — the subtest "a null byte in a static path is survived,
+             not served" in t/integration/handler/file.t asserts both the 404
+             and the single warning. Unifying the two paths turns it red.

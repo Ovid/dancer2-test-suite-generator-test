@@ -89,7 +89,7 @@ Catches:  a `:token` capturing across a `/` so `/user/:id` matches
           names `:splat` and `:captures` silently working instead of dying;
           a route `options` condition (`agent`, `content_type`) failing to
           reject a non-matching request.
-Produces: t/unit/core/route.t
+Produces: [t/unit/core/route.t](../../t/unit/core/route.t)
 Branch:   ovid/test-roadmap
 Landed:   2026-07-24 bb2689e (alter a constant; negate a condition; drop a
           state transition; flip a comparison)
@@ -104,7 +104,7 @@ Catches:  `pass` leaking the first route's content or its leftover `splat`
           changing the method; `redirect '/x'` not prefixing the mount path
           when the app is mounted somewhere other than `/`; an unsupported
           HTTP verb returning something other than 405.
-Produces: t/integration/dispatch/flow.t
+Produces: [t/integration/dispatch/flow.t](../../t/integration/dispatch/flow.t)
 Branch:   ovid/test-roadmap
 Landed:   2026-07-24 24e4afa (negate a condition; drop a state transition;
           alter a constant)
@@ -119,12 +119,15 @@ Catches:  `send_file` with a `../../` path escaping the public directory and
           a missing static file failing to fall through to the next route
           instead of 404-ing immediately; `send_file` dropping the
           `Content-Disposition` filename.
-Produces: t/integration/handler/file.t
+Produces: [t/integration/handler/file.t](../../t/integration/handler/file.t)
 Branch:   ovid/test-roadmap
 Findings: F4 (Handler::File serves files outside public_dir),
           F5 (NUL in a static path warns and 404s on one code path, 400s on the
           other)
 Landed:   2026-07-24 78b5e6f (negate a condition; alter a constant)
+Amended:  2026-08-03 bff77a6 (drop a state transition) - pins the unbounded
+          traversal depth of F4, including /etc/passwd disclosure, and records
+          that the hole needs static_handler: 0.
 
 ## Phase 4: Session lifecycle and cookie header
 
@@ -136,7 +139,7 @@ Catches:  session data surviving `destroy_session`; `change_session_id`
           that was never modified triggering a write to the backend on every
           request; a request carrying a session cookie for a session that no
           longer exists blowing up instead of starting a fresh session.
-Produces: t/integration/session/lifecycle.t
+Produces: [t/integration/session/lifecycle.t](../../t/integration/session/lifecycle.t)
 Branch:   ovid/test-roadmap
 Landed:   2026-07-24 71747d6 (drop a state transition; flip a comparison;
           negate a condition)
@@ -151,7 +154,7 @@ Catches:  a route parameter failing to take precedence over a query or body
           or *not* crashing it when `strict_utf8` is on; `splat` and
           `captures` leaking into `route_parameters`; `forward`'s request
           clone losing already-decoded body parameters.
-Produces: t/unit/core/request.t
+Produces: [t/unit/core/request.t](../../t/unit/core/request.t)
 Branch:   ovid/test-roadmap
 Landed:   2026-07-24 a3f584c (drop a state transition; negate a condition;
           alter a constant)
@@ -164,7 +167,7 @@ Catches:  text content being character-encoded twice; a charset being
           response carrying a body; a response with no content type set
           losing its configured default; headers containing a newline
           reaching the PSGI array unsanitised (a response-splitting hole).
-Produces: t/unit/core/response.t
+Produces: [t/unit/core/response.t](../../t/unit/core/response.t)
 Branch:   ovid/test-roadmap
 Findings: F6 (content assigned twice is never encoded),
           F7 (CRLF survives in a header name)
@@ -180,7 +183,7 @@ Catches:  a malformed JSON request body returning 500 instead of 400; a
           fall back to JSON when neither is recognised; a GET request being
           deserialized when it should not be; a `multipart/form-data` upload
           being run through the deserializer.
-Produces: t/integration/serializer/
+Produces: [t/integration/serializer/](../../t/integration/serializer/)
 Branch:   ovid/test-roadmap
 Findings: F3 (Accept decides the outgoing format, against the docs),
           F8 (a charset parameter defeats the Mutable format lookup)
@@ -195,7 +198,7 @@ Catches:  a stack trace appearing on a 4xx response when `show_stacktrace` is
           taking down the 500 handler instead of falling back to the static
           page or the built-in one; an error message containing HTML being
           rendered unescaped into the error page.
-Produces: t/integration/error/
+Produces: [t/integration/error/](../../t/integration/error/)
 Branch:   ovid/test-roadmap
 Landed:   2026-07-24 aa971d0 (alter a constant; drop a state transition)
 ## Phase 9: Hook chain and hook exception handling
@@ -208,7 +211,7 @@ Catches:  a `before` hook that dies producing a 500 without firing the
           halted; a hook registered for an engine (`before_template_render`)
           never reaching that engine; a hook registered before its engine
           exists being dropped instead of applied when the engine is built.
-Produces: t/integration/hooks/
+Produces: [t/integration/hooks/](../../t/integration/hooks/)
 Branch:   ovid/test-roadmap
 Findings: F9 (a halting hook_exception handler lets the route run),
           F10 (to_app recompiles hooks, duplicating exception reports)
@@ -224,7 +227,7 @@ Catches:  `layout => 0` in the options failing to suppress the layout, or a
           returning empty instead of raising "Template did not produce any
           content"; the auto-page handler serving a file out of the layouts
           directory as if it were a page.
-Produces: t/integration/template/
+Produces: [t/integration/template/](../../t/integration/template/)
 Branch:   ovid/test-roadmap
 Findings: F11 (the AutoPage layout guard is case-sensitive)
 Landed:   2026-07-24 4776346 (alter a constant; negate a condition;
@@ -240,7 +243,7 @@ Catches:  an environment-specific config failing to override the base config,
           unrecognised per-engine key; `strict_config_allow` not suppressing a
           warning for a key it lists; an unsupported engine name in `engines:`
           being accepted silently.
-Produces: t/unit/configreader/
+Produces: [t/unit/configreader/](../../t/unit/configreader/)
 Branch:   ovid/test-roadmap
 Landed:   2026-07-24 7631aac (alter a constant; flip a comparison;
           negate a condition)
@@ -254,7 +257,7 @@ Catches:  `expires => '2 hours'` emitting the literal string instead of a GMT
           `Secure`, `HttpOnly`, `SameSite`, `Path`, or `Domain` attributes
           being dropped from the generated header; `http_only => 0` still
           emitting `HttpOnly`.
-Produces: t/unit/core/cookie.t
+Produces: [t/unit/core/cookie.t](../../t/unit/core/cookie.t)
 Branch:   ovid/test-roadmap
 Landed:   2026-07-24 c91c647 (negate a condition; drop a state transition;
           alter a constant; flip a comparison)
@@ -267,7 +270,7 @@ Catches:  a message below the configured level still being emitted (or one at
           substituted in the log format; an unrecognised format character
           aborting the log call instead of warning and rendering `-`; a
           `%{Header}h` lookup failing to read the named request header.
-Produces: t/unit/logger/
+Produces: [t/unit/logger/](../../t/unit/logger/)
 Branch:   ovid/test-roadmap
 Findings: F2 (%D is documented as a log format code but not implemented)
 Landed:   2026-07-24 0036308 (flip a comparison; alter a constant;
@@ -282,7 +285,7 @@ Catches:  a request that no route in the first app matches never being
           a URL with an unsubstituted `:token` in it instead of failing;
           `uri_for_route` on a regex route silently producing garbage rather
           than refusing; a mounted app's `uri_for` dropping its mount path.
-Produces: t/integration/dispatch/multiapp.t
+Produces: [t/integration/dispatch/multiapp.t](../../t/integration/dispatch/multiapp.t)
 Branch:   ovid/test-roadmap
 Findings: F1 (uri_for_route refuses a route parameter whose value is 0)
 Landed:   2026-07-24 b5bfab6 (drop a state transition x3; alter a constant x2)
@@ -295,7 +298,7 @@ Catches:  the generated application failing to compile; `share/skel` losing a
           config, the `.psgi` entry point); the generated app's own bundled
           tests failing; `--path` or `-a` writing the application to the wrong
           directory or under the wrong package name.
-Produces: t/e2e/cli/gen.t
+Produces: [t/e2e/cli/gen.t](../../t/e2e/cli/gen.t)
 Branch:   ovid/test-roadmap
 Findings: F12 (the generated directory keeps the :: from -a),
           F13 (MANIFEST.SKIP is appended an absolute path pattern),

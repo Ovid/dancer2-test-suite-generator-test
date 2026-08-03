@@ -338,4 +338,57 @@ subtest 'Dancer2::Handler::File does not contain ../ paths (known bug F4)' => su
         'BUG: the content of a file outside public_dir is disclosed' );
 };
 
+subtest 'the ../ escape has no depth limit (known bug F4)' => sub {
+
+    # The subtest above pins that the escape happens. This one pins how far it
+    # reaches, which is the part that decides the severity: there is no check
+    # at all, so there is no depth limit either. One ../ and twenty behave the
+    # same way, and the twenty can name an absolute system path.
+    #
+    # Same bug, same fix - $dir->realpath->subsumes($file_path), the test
+    # send_file already makes at Dancer2/Core/App.pm:1182 - so this subtest
+    # goes red alongside the one above when the containment check lands.
+    #
+    # Note this is reachable only where the default static handler is off:
+    # with it on, Plack::App::File refuses the same request with a 403, which
+    # the StaticApp subtest above pins. HandlerFileApp sets static_handler: 0.
+
+    my $test = Plack::Test->create( HandlerFileApp->to_app );
+
+    # Two levels up and back down again, rather than the single ../ above:
+    # public_dir/../../<tempdir name>/secret.txt resolves to the same file.
+    my $updown = $test->request( HTTP::Request->new(
+        GET => '/../../' . $ROOT->basename . '/secret.txt' ) );
+    is( $updown->code, 200,
+        'BUG: a two-level ../../ path escapes just as well as one' );
+    is( $updown->content, 'SECRET',
+        'BUG: and discloses the same file outside public_dir' );
+
+    # More ../ than there are directories: the surplus collapses at the
+    # filesystem root instead of failing, so an attacker needs no knowledge of
+    # how deep public_dir happens to sit. $ROOT->relative('/') then walks back
+    # down to the fixture from /.
+    my $deep = $test->request( HTTP::Request->new(
+        GET => '/' . ( '../' x 20 ) . $ROOT->relative('/') . '/secret.txt' ) );
+    is( $deep->code, 200,
+        'BUG: surplus ../ segments collapse at / rather than being refused' );
+    is( $deep->content, 'SECRET',
+        'BUG: so the escape works without knowing the depth of public_dir' );
+
+    # The reason the two assertions above matter: the same shape reaches a
+    # real file outside the application entirely. Guarded, because a readable
+    # /etc/passwd is a Unix assumption and this suite also runs on Windows.
+  SKIP: {
+        skip 'no readable /etc/passwd on this platform', 2
+            if !-r '/etc/passwd';
+
+        my $passwd = $test->request( HTTP::Request->new(
+            GET => '/' . ( '../' x 20 ) . 'etc/passwd' ) );
+        is( $passwd->code, 200,
+            'BUG: /etc/passwd is served through Dancer2::Handler::File' );
+        like( $passwd->content, qr/^root:/m,
+            'BUG: and the response really is the system password file' );
+    }
+};
+
 done_testing();

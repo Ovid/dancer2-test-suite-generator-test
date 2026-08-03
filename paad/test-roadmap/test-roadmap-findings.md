@@ -22,7 +22,7 @@ Severities are one reader's judgement, not a scanner's output — argue with the
 
 | ID | Severity | Area | In one line |
 |----|----------|------|-------------|
-| [F4](#f4--dancer2handlerfile-serves-files-from-outside-public_dir) | **critical — security** | static files | a request for `/../secret.txt` is answered 200 with the file |
+| [F4](#f4--dancer2handlerfile-serves-files-from-outside-public_dir) | **critical — security** | static files | any depth of `../` is served, up to `/etc/passwd` — but only when `static_handler: 0` |
 | [F9](#f9--a-halting-on_hook_exception-handler-lets-the-refused-route-run-anyway) | **critical — security** | hooks | a `before` hook that refused the request does not stop the route running |
 | [F7](#f7--headers_to_array-sanitises-header-values-but-not-header-names) | serious — security | responses | CR/LF survive in a header *name* though they are stripped from values |
 | [F6](#f6--content-assigned-a-second-time-is-never-encoded-while-the-response-still-claims-a-charset) | serious | responses | a second `content` assignment ships unencoded under a `charset=UTF-8` header |
@@ -133,12 +133,35 @@ the choosing. Restoring the documented order turns it red.
 **Where:** lib/Dancer2/Handler/File.pm:98-105
 
 **Behavior:** With the `File` route handler enabled
-(`route_handlers: [[ File => { public_dir => ... } ]]`), a request for
-`/../secret.txt` is answered `200` with the contents of a file one directory
-above `public_dir`. The handler joins `public_dir` with the request path and
-then only asks whether the result is a readable file — it never asks whether
-the result is still inside `public_dir`. `Path::Tiny::path` does not collapse
-`..`, so the joined path escapes and `-f` is happy with it.
+(`route_handlers: [[ File => { public_dir => ... } ]]`) **and the default static
+handler off (`static_handler: 0`)**, a request for `/../secret.txt` is answered
+`200` with the contents of a file one directory above `public_dir`. The handler
+joins `public_dir` with the request path and then only asks whether the result
+is a readable file — it never asks whether the result is still inside
+`public_dir`. `Path::Tiny::path` does not collapse `..`, so the joined path
+escapes and `-f` is happy with it.
+
+**The `static_handler: 0` qualifier is load-bearing** and was missing from the
+first version of this entry. `static_handler` is on by default, and when it is
+on `App::to_app` wraps the whole application in `Plack::App::File`
+(lib/Dancer2/Core/App.pm:1577-1596), which performs its own `..` check and
+answers `403` before Dancer2 sees the request. So a default-configuration
+application is not exposed; reaching this hole requires an application that
+turns the default static handler off while enabling the `File` route handler.
+
+**There is no depth limit.** Because there is no containment check at all,
+traversal depth is unbounded and the surplus `..` segments simply collapse at
+the filesystem root, so an attacker needs no knowledge of how deep
+`public_dir` sits. Measured against an app configured as above:
+
+```
+/hello.txt                                    200  HELLO
+/../secret.txt                                200  SECRET
+/../../../../../../../../etc/passwd           200  (real /etc/passwd)
+/../../../../../../../../../../etc/passwd     200  (real /etc/passwd)
+```
+
+Any file readable by the server process is reachable.
 
 **Contradicts:** two places in this same distribution: (a)
 `lib/Dancer2/Core/App.pm:1180-1182`, the `send_file` code path, which performs
@@ -153,10 +176,17 @@ so the containment refusal the code appears to make is never actually made.
 containment check. If so, replace it with the same test `send_file` uses —
 `$dir->realpath->subsumes($file_path)` — so both file-serving paths agree.
 
-**Pinned by:** Phase 3 — the subtest "Dancer2::Handler::File does not contain
-../ paths (known bug F4)" in t/integration/handler/file.t locks in the current
-200-and-disclose behavior. Adding the check turns that subtest red; that red is
-the fix landing, not a regression.
+**Pinned by:** Phase 3 — two subtests in t/integration/handler/file.t.
+"Dancer2::Handler::File does not contain ../ paths (known bug F4)" locks in the
+current 200-and-disclose behavior for a single `../`. "the ../ escape has no
+depth limit (known bug F4)" locks in the unbounded depth above: a two-level
+escape, the surplus-`..`-collapse case, and — guarded by `-r '/etc/passwd'`, so
+it skips where that file is absent — the actual disclosure of the system
+password file. Adding the containment check turns both subtests red; that red is
+the fix landing, not a regression. Verified: applying
+`$dir->realpath->subsumes($file_path)` in a throwaway worktree turns all six
+assertions of the depth subtest red while every legitimate-serving subtest in
+the file stays green, so the fix is guarded in both directions.
 
 ## F5 — The default static handler warns and 404s on a NUL in the path where `Handler::File` returns 400
 

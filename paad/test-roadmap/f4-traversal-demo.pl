@@ -130,10 +130,25 @@ else {
     my $actual = Path::Tiny::path('/etc/passwd')->slurp_raw;
 
     printf "   GET %setc/passwd -> %s\n", $ESCAPE, $res->code;
-    printf "   bytes served:        %d\n", length $served;
-    printf "   bytes in /etc/passwd: %d\n", length $actual;
-    printf "   sha256 served:       %s\n", sha256_hex($served);
-    printf "   sha256 /etc/passwd:  %s\n", sha256_hex($actual);
+    printf "   %-22s %d\n", 'bytes served:',         length $served;
+    printf "   %-22s %d\n", 'bytes in /etc/passwd:', length $actual;
+    printf "   %-22s %s\n", 'sha256 served:',        sha256_hex($served);
+    printf "   %-22s %s\n", 'sha256 /etc/passwd:',   sha256_hex($actual);
+
+    # Do not ask anyone to take this script's word for the digest. Both
+    # commands below are safe to run in front of other people: they print a
+    # digest and a filename, never any of the file's contents.
+    print <<'CHECK';
+
+   Check that digest yourself, without this script:
+
+       shasum -a 256 /etc/passwd     # macOS, and most Linux boxes
+       sha256sum /etc/passwd         # Linux (GNU coreutils)
+       openssl dgst -sha256 /etc/passwd   # anywhere openssl is installed
+
+   Any of those prints the same 64 hex characters shown above for
+   'sha256 /etc/passwd'. None of them prints the file's contents.
+CHECK
 
     if ( $res->code == 200 && length($served) && $served eq $actual ) {
         $verdict = 'VULNERABLE';

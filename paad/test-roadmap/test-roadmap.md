@@ -125,6 +125,9 @@ Findings: F4 (Handler::File serves files outside public_dir),
           F5 (NUL in a static path warns and 404s on one code path, 400s on the
           other)
 Landed:   2026-07-24 78b5e6f (negate a condition; alter a constant)
+Amended:  2026-08-03 bff77a6 (drop a state transition) - pins the unbounded
+          traversal depth of F4, including /etc/passwd disclosure, and records
+          that the hole needs static_handler: 0.
 
 ## Phase 4: Session lifecycle and cookie header
 

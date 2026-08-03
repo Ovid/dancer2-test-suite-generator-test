@@ -48,7 +48,7 @@ shape covers three. F3 and F8 both live in `Mutable::_get_content_type`.
 
 **Severity:** moderate
 
-**Where:** lib/Dancer2/Core/App.pm:1894
+**Where:** [lib/Dancer2/Core/App.pm:1894](../../lib/Dancer2/Core/App.pm#L1894)
 
 **Behavior:** For a route declared as `get 'item' => '/item/:id' => sub {...}`,
 `uri_for_route('item', { id => 7 })` returns `http://localhost/item/7` and
@@ -59,15 +59,15 @@ way. The value is tested for truth (`my $value = $route_params->{$param} or die
 ...`), so any false-but-present value is rejected.
 
 **Contradicts:** the error message the same line raises
-(lib/Dancer2/Core/App.pm:1895) states the parameter "was not provided" — but it
+([lib/Dancer2/Core/App.pm:1895](../../lib/Dancer2/Core/App.pm#L1895)) states the parameter "was not provided" — but it
 *was* provided. `0` is an ordinary database ID, list index, or page number.
 
 **Action:** decide whether a defined-but-false route parameter should be
 accepted. If it should, test the key with `exists` or the value with `defined`
-at lib/Dancer2/Core/App.pm:1894 instead of testing it for truth.
+at [lib/Dancer2/Core/App.pm:1894](../../lib/Dancer2/Core/App.pm#L1894) instead of testing it for truth.
 
 **Pinned by:** Phase 14 — the subtest "uri_for_route rejects a route parameter
-of 0 (known bug F1)" in t/integration/dispatch/multiapp.t locks in the current
+of 0 (known bug F1)" in [t/integration/dispatch/multiapp.t](../../t/integration/dispatch/multiapp.t) locks in the current
 "dies on `0`" behavior, alongside the `7` and `abc` cases that work. Accepting
 `0` turns it red.
 
@@ -75,7 +75,7 @@ of 0 (known bug F1)" in t/integration/dispatch/multiapp.t locks in the current
 
 **Severity:** minor
 
-**Where:** lib/Dancer2/Core/Role/Logger.pm:126-147 (`map_chars_to_subs`)
+**Where:** [lib/Dancer2/Core/Role/Logger.pm:126-147](../../lib/Dancer2/Core/Role/Logger.pm#L126-L147) (`map_chars_to_subs`)
 
 **Behavior:** A logger configured with a format containing `%D` — for example
 `log_format: '[%D] %m'` — warns *"%D not supported."* through `Carp` on every
@@ -85,7 +85,7 @@ formatting lives in the shared role.
 
 **Contradicts:** the same module's own documentation, which lists `%D` as a
 supported value under the `log_format` attribute with the description "timer"
-(lib/Dancer2/Core/Role/Logger.pm, `=item %D` in the POD). `map_chars_to_subs`
+([lib/Dancer2/Core/Role/Logger.pm](../../lib/Dancer2/Core/Role/Logger.pm), `=item %D` in the POD). `map_chars_to_subs`
 returns no `D` key.
 
 **Action:** either implement `%D` in `map_chars_to_subs`, or remove `%D` from
@@ -93,7 +93,7 @@ the documented list. Note that anyone who followed the docs is currently
 getting a `Carp` warning per log line.
 
 **Pinned by:** Phase 13 — the subtest "%D is documented but not implemented
-(known bug F2)" in t/unit/logger/format.t locks in the current
+(known bug F2)" in [t/unit/logger/format.t](../../t/unit/logger/format.t) locks in the current
 warn-and-render-`-` behavior, including that `%D` behaves exactly like the
 undocumented `%Z`. Implementing `%D` turns it red.
 
@@ -101,7 +101,7 @@ undocumented `%Z`. Implementing `%D` turns it red.
 
 **Severity:** moderate
 
-**Where:** lib/Dancer2/Serializer/Mutable.pm:64-108
+**Where:** [lib/Dancer2/Serializer/Mutable.pm:64-108](../../lib/Dancer2/Serializer/Mutable.pm#L64-L108)
 
 **Behavior:** Given a request carrying both `Content-Type: text/x-yaml` and
 `Accept: application/json`, `serialize()` produces JSON (`{"a":1}`) and reports
@@ -110,7 +110,7 @@ its content type as `application/json`. `serialize` calls
 `accept`, `content_type`, `accept` — so `Accept` wins. (`deserialize` is
 unaffected: it passes `'content_type'`, giving the documented order.)
 
-**Contradicts:** the module's own DESCRIPTION (lib/Dancer2/Serializer/Mutable.pm,
+**Contradicts:** the module's own DESCRIPTION ([lib/Dancer2/Serializer/Mutable.pm](../../lib/Dancer2/Serializer/Mutable.pm),
 the "it will pick the first valid content type found from the following list"
 list), which states the order as: the `content_type` from the request headers,
 then the `accept` from the request headers, then the `application/json`
@@ -122,7 +122,7 @@ documentation is what needs changing — but the code and the docs currently
 cannot both be right.
 
 **Pinned by:** Phase 7 — the subtest "Accept wins over Content-Type when
-serializing (known bug F3)" in t/integration/serializer/mutable.t locks in the
+serializing (known bug F3)" in [t/integration/serializer/mutable.t](../../t/integration/serializer/mutable.t) locks in the
 current behavior, with the mirror-image request to show it is `Accept` doing
 the choosing. Restoring the documented order turns it red.
 
@@ -130,7 +130,7 @@ the choosing. Restoring the documented order turns it red.
 
 **Severity:** critical — security
 
-**Where:** lib/Dancer2/Handler/File.pm:98-105
+**Where:** [lib/Dancer2/Handler/File.pm:98-105](../../lib/Dancer2/Handler/File.pm#L98-L105)
 
 **Behavior:** With the `File` route handler enabled
 (`route_handlers: [[ File => { public_dir => ... } ]]`) **and the default static
@@ -144,7 +144,7 @@ escapes and `-f` is happy with it.
 **The `static_handler: 0` qualifier is load-bearing** and was missing from the
 first version of this entry. `static_handler` is on by default, and when it is
 on `App::to_app` wraps the whole application in `Plack::App::File`
-(lib/Dancer2/Core/App.pm:1577-1596), which performs its own `..` check and
+([lib/Dancer2/Core/App.pm:1577-1596](../../lib/Dancer2/Core/App.pm#L1577-L1596)), which performs its own `..` check and
 answers `403` before Dancer2 sees the request. So a default-configuration
 application is not exposed; reaching this hole requires an application that
 turns the default static handler off while enabling the `File` route handler.
@@ -164,10 +164,10 @@ the filesystem root, so an attacker needs no knowledge of how deep
 Any file readable by the server process is reachable.
 
 **Contradicts:** two places in this same distribution: (a)
-`lib/Dancer2/Core/App.pm:1180-1182`, the `send_file` code path, which performs
+[`lib/Dancer2/Core/App.pm:1180-1182`](../../lib/Dancer2/Core/App.pm#L1180-L1182), the `send_file` code path, which performs
 exactly the missing check — commented "We need to check whether they are trying
 to access a directory outside their scope" — and answers 403; and (b)
-`lib/Dancer2/Handler/File.pm:100` itself: `return $self->standard_response(
+[`lib/Dancer2/Handler/File.pm:100`](../../lib/Dancer2/Handler/File.pm#L100) itself: `return $self->standard_response(
 $app, 403 ) if !defined $file_path_str;` — a 403 guard on the result of
 `Path::Tiny::stringify`, which never returns undef. That branch is unreachable,
 so the containment refusal the code appears to make is never actually made.
@@ -176,7 +176,7 @@ so the containment refusal the code appears to make is never actually made.
 containment check. If so, replace it with the same test `send_file` uses —
 `$dir->realpath->subsumes($file_path)` — so both file-serving paths agree.
 
-**Pinned by:** Phase 3 — two subtests in t/integration/handler/file.t.
+**Pinned by:** Phase 3 — two subtests in [t/integration/handler/file.t](../../t/integration/handler/file.t).
 "Dancer2::Handler::File does not contain ../ paths (known bug F4)" locks in the
 current 200-and-disclose behavior for a single `../`. "the ../ escape has no
 depth limit (known bug F4)" locks in the unbounded depth above: a two-level
@@ -192,7 +192,7 @@ the file stays green, so the fix is guarded in both directions.
 
 **Severity:** minor — security
 
-**Where:** lib/Dancer2/Core/App.pm:1587-1594
+**Where:** [lib/Dancer2/Core/App.pm:1587-1594](../../lib/Dancer2/Core/App.pm#L1587-L1594)
 
 **Behavior:** A request for `/hello.txt\0.png` against an application using the
 default static handler emits a warning from `Path::Tiny` — `Invalid \0
@@ -202,7 +202,7 @@ file-existence condition calling `->child( $env->{PATH_INFO} )->is_file` on the
 unvalidated path. Nothing is disclosed, but an attacker-supplied path reaches
 the server's log as a warning on every such request.
 
-**Contradicts:** lib/Dancer2/Handler/File.pm:90-92, the other static-file path
+**Contradicts:** [lib/Dancer2/Handler/File.pm:90-92](../../lib/Dancer2/Handler/File.pm#L90-L92), the other static-file path
 in this distribution, which checks `$path =~ /\0/` first and answers `400 Bad
 Request` without touching the filesystem.
 
@@ -212,15 +212,15 @@ ahead of the `is_file` condition in `App::to_app` so the request is rejected
 before Path::Tiny is asked about it.
 
 **Pinned by:** Phase 3 — the subtest "a null byte in a static path is survived,
-not served (F5)" in t/integration/handler/file.t asserts both the 404 and the
+not served (F5)" in [t/integration/handler/file.t](../../t/integration/handler/file.t) asserts both the 404 and the
 single warning. Unifying the two paths turns it red.
 
 ## F6 — Content assigned a second time is never encoded, while the response still claims a charset
 
 **Severity:** serious
 
-**Where:** lib/Dancer2/Core/Response.pm:162 (the guard), with
-lib/Dancer2/Core/Response.pm:137-151 (the wrapper it defeats)
+**Where:** [lib/Dancer2/Core/Response.pm:162](../../lib/Dancer2/Core/Response.pm#L162) (the guard), with
+[lib/Dancer2/Core/Response.pm:137-151](../../lib/Dancer2/Core/Response.pm#L137-L151) (the wrapper it defeats)
 
 **Behavior:** With `charset` set to UTF-8, assigning `content` twice leaves the
 second value unencoded. `$response->content('first')` encodes and latches
@@ -234,12 +234,12 @@ This is reachable from ordinary application code: an `after` hook that rewrites
 set.
 
 **Contradicts:** the response contradicts itself in a single object — the
-`Content-Type` header it sets at lib/Dancer2/Core/Response.pm:192 announces
-`charset=UTF-8` while the body it emits at lib/Dancer2/Core/Response.pm:243 is
+`Content-Type` header it sets at [lib/Dancer2/Core/Response.pm:192](../../lib/Dancer2/Core/Response.pm#L192) announces
+`charset=UTF-8` while the body it emits at [lib/Dancer2/Core/Response.pm:243](../../lib/Dancer2/Core/Response.pm#L243) is
 not UTF-8 encoded, and the `Content-Length` computed at
-lib/Dancer2/Core/Response.pm:237 counts characters rather than the bytes that
+[lib/Dancer2/Core/Response.pm:237](../../lib/Dancer2/Core/Response.pm#L237) counts characters rather than the bytes that
 header promises. Separately, the `around content` modifier at
-lib/Dancer2/Core/Response.pm:137-151 routes *every* assignment through
+[lib/Dancer2/Core/Response.pm:137-151](../../lib/Dancer2/Core/Response.pm#L137-L151) routes *every* assignment through
 `encode_content`, which the line 162 guard then makes a no-op for all
 assignments after the first.
 
@@ -251,7 +251,7 @@ encoded on its own merits — leaving the externally-set uses
 working as they do now.
 
 **Pinned by:** Phase 6 — the subtest "replacing the content after the first set
-leaves it unencoded (known bug F6)" in t/unit/core/response.t locks in the current
+leaves it unencoded (known bug F6)" in [t/unit/core/response.t](../../t/unit/core/response.t) locks in the current
 character body and character-count Content-Length. Fixing the code turns that
 subtest red; that red is the fix.
 
@@ -259,7 +259,7 @@ subtest red; that red is the fix.
 
 **Severity:** serious — security
 
-**Where:** lib/Dancer2/Core/Response.pm:63-76
+**Where:** [lib/Dancer2/Core/Response.pm:63-76](../../lib/Dancer2/Core/Response.pm#L63-L76)
 
 **Behavior:** `$response->header("X-Bad\r\nInjected: yes" => 'v')` produces a
 PSGI header array in which one element still contains a literal CRLF: `to_psgi`
@@ -281,7 +281,7 @@ with a newline in it is never legitimate, whereas a value can plausibly arrive
 folded.
 
 **Pinned by:** Phase 6 — the subtest "CR and LF survive in a header name (known
-bug F7)" in t/unit/core/response.t asserts that exactly one element of the PSGI
+bug F7)" in [t/unit/core/response.t](../../t/unit/core/response.t) asserts that exactly one element of the PSGI
 header array still contains CRLF. Sanitising the name turns it red. The
 companion subtest "CR and LF are stripped from header values" pins the half
 that already works, so a fix that breaks the value path would be caught too.
@@ -290,7 +290,7 @@ that already works, so a fix that breaks the value path would be caught too.
 
 **Severity:** serious
 
-**Where:** lib/Dancer2/Serializer/Mutable.pm:96-97
+**Where:** [lib/Dancer2/Serializer/Mutable.pm:96-97](../../lib/Dancer2/Serializer/Mutable.pm#L96-L97)
 
 **Behavior:** `POST` with `Content-Type: text/x-yaml` and the body `---\na: 1\n`
 is deserialized as YAML and answered 200. The identical request with
@@ -305,7 +305,7 @@ by accident — the fallback when the lookup misses *is* JSON, so
 common case.
 
 **Contradicts:** this distribution elsewhere treats a content-type header as a
-type plus separable parameters. `lib/Dancer2/Core/Response.pm:169` calls
+type plus separable parameters. [`lib/Dancer2/Core/Response.pm:169`](../../lib/Dancer2/Core/Response.pm#L169) calls
 `$self->headers->content_type_charset` precisely to split the charset off the
 type, and `HTTP::Headers`' own `content_type` accessor (used throughout Plack,
 on which this distribution depends) strips parameters and lowercases.
@@ -321,7 +321,7 @@ F3: both live in `_get_content_type`, so fixing them together is likely cheaper
 than separately.
 
 **Pinned by:** Phase 7 — the subtest "a charset parameter on Content-Type
-breaks the lookup (known bug F8)" in t/integration/serializer/mutable.t pins the
+breaks the lookup (known bug F8)" in [t/integration/serializer/mutable.t](../../t/integration/serializer/mutable.t) pins the
 400, the silent JSON fallback on `Accept`, and the control case that works
 without the parameter. Normalising the lookup turns it red; that red is the
 fix.
@@ -330,7 +330,7 @@ fix.
 
 **Severity:** critical — security
 
-**Where:** lib/Dancer2/Core/App.pm:1335-1347
+**Where:** [lib/Dancer2/Core/App.pm:1335-1347](../../lib/Dancer2/Core/App.pm#L1335-L1347)
 
 **Behavior:** Given a `before` hook that dies and an `on_hook_exception` handler
 that sets a response and calls `is_halted(1)`, the request produces this
@@ -346,15 +346,15 @@ The route the `before` hook had just refused is executed. Any side effect it
 has — a charge, an insert, an email — happens. The mechanism: the wrapper
 captures `is_halted` at line 1335, then calls `$app->cleanup` at 1341, which
 clears the request, the response and the session
-(lib/Dancer2/Core/App.pm:945-956). It then returns without croaking because the
+([lib/Dancer2/Core/App.pm:945-956](../../lib/Dancer2/Core/App.pm#L945-L956)). It then returns without croaking because the
 handler halted. Dispatch resumes in `_dispatch_route`, reads `$self->response`
 — now a fresh, unhalted object — sees nothing halted, and runs the route. The
 `core.app.after_request` hook then dies on `$self->request->cookies`
-(lib/Dancer2/Core/App.pm:1436) because `cleanup` destroyed the request, which
+([lib/Dancer2/Core/App.pm:1436](../../lib/Dancer2/Core/App.pm#L1436)) because `cleanup` destroyed the request, which
 is what fires the exception handler a second time. The 418 the client finally
 receives comes from that second firing, not the first.
 
-**Contradicts:** the wrapper's own comment at lib/Dancer2/Core/App.pm:1343-1347
+**Contradicts:** the wrapper's own comment at [lib/Dancer2/Core/App.pm:1343-1347](../../lib/Dancer2/Core/App.pm#L1343-L1347)
 — "Allow the hook function to halt the response, thus retaining any response it
 may have set" — states that halting in the handler is a supported way to keep a
 custom response. The `cleanup` call six lines earlier destroys the state that
@@ -369,7 +369,7 @@ should return it rather than continue), or have `_dispatch_route` treat a hook
 that returned after halting as terminal instead of re-reading `$self->response`.
 
 **Pinned by:** Phase 9 — the subtest "a halting hook_exception handler lets the
-route run anyway (known bug F9)" in t/integration/hooks/chain.t pins the full
+route run anyway (known bug F9)" in [t/integration/hooks/chain.t](../../t/integration/hooks/chain.t) pins the full
 four-step sequence, including the route running and the second exception.
 Fixing this turns that subtest red; the corrected expectation is that the route
 never runs and the handler fires once.
@@ -378,8 +378,8 @@ never runs and the handler fires once.
 
 **Severity:** moderate
 
-**Where:** lib/Dancer2/Core/App.pm:1313-1358 (`compile_hooks`), reached from
-`finish` at lib/Dancer2/Core/App.pm:1270
+**Where:** [lib/Dancer2/Core/App.pm:1313-1358](../../lib/Dancer2/Core/App.pm#L1313-L1358) (`compile_hooks`), reached from
+`finish` at [lib/Dancer2/Core/App.pm:1270](../../lib/Dancer2/Core/App.pm#L1270)
 
 **Behavior:** `compile_hooks` wraps each registered hook and writes the wrappers
 back with `replace_hook`, so calling `to_app` a second time on the same app
@@ -391,12 +391,12 @@ the inner layer's croak as a fresh hook failure and fires
 `to_app` call.
 
 **Contradicts:** the wrapper carries an explicit guard against reporting the
-same failure twice — lib/Dancer2/Core/App.pm:1329-1334, "Don't execute the
+same failure twice — [lib/Dancer2/Core/App.pm:1329-1334](../../lib/Dancer2/Core/App.pm#L1329-L1334), "Don't execute the
 hook_exception hook if the exception has been generated from a hook exception
 handler itself, thus preventing potentially recursive code". That states the
 single-fire invariant, but only considers recursion through the handler, not a
 second layer of wrapping. The `replace_hook` it relies on is documented in
-lib/Dancer2/Core/Role/Hookable.pm as replacing the hook list, which it does —
+[lib/Dancer2/Core/Role/Hookable.pm](../../lib/Dancer2/Core/Role/Hookable.pm) as replacing the hook list, which it does —
 with wrappers around the previous wrappers.
 
 **Action:** make the compile idempotent. Either guard `finish` with a flag so a
@@ -404,7 +404,7 @@ second call is a no-op, or have `compile_hooks` build its wrappers from a
 preserved list of the original hooks rather than from `hooks` in place.
 
 **Pinned by:** Phase 9 — the subtest "to_app compiles the hooks again every time
-(known bug F10)" in t/integration/hooks/chain.t asserts the 1, 2, 3 progression.
+(known bug F10)" in [t/integration/hooks/chain.t](../../t/integration/hooks/chain.t) asserts the 1, 2, 3 progression.
 Making the compile idempotent turns it red; the corrected expectation is 1, 1,
 1. Note this also affects test authoring: every app in that file builds its PSGI
 coderef once for this reason, and a suite that calls `to_app` per test would see
@@ -414,7 +414,7 @@ inflated exception counts.
 
 **Severity:** moderate — security
 
-**Where:** lib/Dancer2/Handler/AutoPage.pm:36-40
+**Where:** [lib/Dancer2/Handler/AutoPage.pm:36-40](../../lib/Dancer2/Handler/AutoPage.pm#L36-L40)
 
 **Behavior:** With `auto_page: 1` and the default `layout_dir` of `layouts`, a
 request for `/layouts/main` is correctly passed on and 404s. A request for
@@ -431,7 +431,7 @@ case-sensitive CI box. Indirect spellings (`/x/../layouts/main`,
 lookup does not resolve them.
 
 **Contradicts:** the adjacent validation it defeats. The guard at
-lib/Dancer2/Handler/AutoPage.pm:36-40 exists for no purpose other than keeping
+[lib/Dancer2/Handler/AutoPage.pm:36-40](../../lib/Dancer2/Handler/AutoPage.pm#L36-L40) exists for no purpose other than keeping
 layout templates from being served as pages, and the module's own POD describes
 the handler as "responsible for serving pages that match an existing template"
 with the layout directory as the carve-out. A path that reaches the same file
@@ -441,13 +441,13 @@ validation does not hold on the platforms where it matters.
 **Action:** stop deciding this from the request path's spelling. Resolve the
 view path first and check that the result is not inside the layout directory —
 the containment approach `send_file` already uses
-(`$dir->realpath->subsumes($file_path)`, lib/Dancer2/Core/App.pm:1182) — so the
+(`$dir->realpath->subsumes($file_path)`, [lib/Dancer2/Core/App.pm:1182](../../lib/Dancer2/Core/App.pm#L1182)) — so the
 check is about which file was reached rather than how it was spelled. A
 case-insensitive compare would also close this particular spelling, but would
 not close the general "same file, different path" shape.
 
 **Pinned by:** Phase 10 — the subtest "the layout guard is case-sensitive (known
-bug F11)" in t/integration/template/autopage.t pins the 200 and the rendered
+bug F11)" in [t/integration/template/autopage.t](../../t/integration/template/autopage.t) pins the 200 and the rendered
 layout, guarded by a filesystem check. The companion subtest "a layout cannot
 be requested as a page" pins the half that works, including the indirect
 spellings, so a fix that breaks those would be caught too.
@@ -456,7 +456,7 @@ spellings, so a fix that breaks those would be caught too.
 
 **Severity:** minor
 
-**Where:** lib/Dancer2/CLI/Gen.pm:161 and lib/Dancer2/CLI/Gen.pm:163-165
+**Where:** [lib/Dancer2/CLI/Gen.pm:161](../../lib/Dancer2/CLI/Gen.pm#L161) and [lib/Dancer2/CLI/Gen.pm:163-165](../../lib/Dancer2/CLI/Gen.pm#L163-L165)
 
 **Behavior:** `dancer2 gen -a Other::App --path DIR` (no `-d`) creates the
 directory `DIR/Other::App/`, with the colons in the directory name, rather than
@@ -464,13 +464,13 @@ directory `DIR/Other::App/`, with the colons in the directory name, rather than
 written correctly to `lib/Other/App.pm`.
 
 **Contradicts:** the generator's own dashed-name machinery. `_get_app_path`
-(lib/Dancer2/CLI.pm:33-36) exists to turn `Other::App` into `Other-App`, and
+([lib/Dancer2/CLI.pm:33-36](../../lib/Dancer2/CLI.pm#L33-L36)) exists to turn `Other::App` into `Other-App`, and
 Gen.pm:161 calls it — then Gen.pm:163-165 unconditionally throws that result
 away, because the `directory` option (Gen.pm:30-38) defaults to the raw
 application name. The two spellings then disagree inside a single generated
 app: the directory is `Other::App` while the `Makefile.PL` the same run
 produced cleans `Other-App-*` (from `cleanfiles`, Gen.pm:185, via
-`_get_dashed_name`, lib/Dancer2/CLI.pm:48-52).
+`_get_dashed_name`, [lib/Dancer2/CLI.pm:48-52](../../lib/Dancer2/CLI.pm#L48-L52)).
 
 **Action:** decide which spelling is intended. If it is the dashed one, give the
 `directory` option no default and fall back to `_get_app_path`'s result at
@@ -478,14 +478,14 @@ Gen.pm:163; if it is the raw name, delete the now-dead `_get_app_path` call at
 Gen.pm:161 and settle what `Makefile.PL` should clean.
 
 **Pinned by:** Phase 15 — the subtest "the application directory keeps the ::
-from -a (known bug F12)" in t/e2e/cli/gen.t pins the current directory name and
+from -a (known bug F12)" in [t/e2e/cli/gen.t](../../t/e2e/cli/gen.t) pins the current directory name and
 the disagreement with Makefile.PL.
 
 ## F13 — The line appended to a generated `MANIFEST.SKIP` is an absolute path
 
 **Severity:** minor
 
-**Where:** lib/Dancer2/CLI/Gen.pm:398-405 (`_add_to_manifest_skip`)
+**Where:** [lib/Dancer2/CLI/Gen.pm:398-405](../../lib/Dancer2/CLI/Gen.pm#L398-L405) (`_add_to_manifest_skip`)
 
 **Behavior:** Every generated application's `MANIFEST.SKIP` ends with a line
 built from the full filesystem path it was generated into — e.g.
@@ -495,45 +495,45 @@ directory.
 
 **Contradicts:** the rest of the same file, and the sibling file written by the
 same run. Every other pattern in the generated `MANIFEST.SKIP` (from
-share/skel/default/MANIFEST.SKIP) is repo-relative — `^.gitignore`, `^.svn\/`,
+[share/skel/default/MANIFEST.SKIP](../../share/skel/default/MANIFEST.SKIP)) is repo-relative — `^.gitignore`, `^.svn\/`,
 `^blib/` — as `ExtUtils::Manifest` expects, since it matches these against
 paths relative to the distribution root. The intended target is evidently the
 built tarball directory, which the `Makefile.PL` generated alongside it names
 in dashed, relative form: `clean => { FILES => 'MyApp-App-*' }`.
 
 **Action:** append the distribution name rather than the path at Gen.pm:403 —
-the dashed name from `_get_dashed_name` (lib/Dancer2/CLI.pm:48-52) is already
+the dashed name from `_get_dashed_name` ([lib/Dancer2/CLI.pm:48-52](../../lib/Dancer2/CLI.pm#L48-L52)) is already
 computed for `cleanfiles` — so the line reads `^MyApp-App-` and can actually
 match.
 
 **Pinned by:** Phase 15 — the subtest "MANIFEST.SKIP gets an absolute path
-pattern (known bug F13)" in t/e2e/cli/gen.t pins the current absolute-path
+pattern (known bug F13)" in [t/e2e/cli/gen.t](../../t/e2e/cli/gen.t) pins the current absolute-path
 line.
 
 ## F14 — The skeleton's `environments/` configs are ignored by git and missing from a fresh clone
 
 **Severity:** moderate
 
-**Where:** share/.gitignore:4
+**Where:** [share/.gitignore:4](../../share/.gitignore#L4)
 
-**Behavior:** `share/skel/default/environments/development.yml` and
+**Behavior:** [`share/skel/default/environments/development.yml`](../../share/skel/default/environments/development.yml) and
 `production.yml` exist in a working copy but have never been committed — `git
 log -- 'share/skel/default/environments*'` is empty and `git ls-files
-share/skel/default/environments` lists nothing, because `share/.gitignore` line
+share/skel/default/environments` lists nothing, because [`share/.gitignore`](../../share/.gitignore) line
 4 ignores `environments/`. A fresh clone of this repository therefore has no
-`share/skel/default/environments/` at all, and `dancer2 gen` run from that
+[`share/skel/default/environments/`](../../share/skel/default/environments/) at all, and `dancer2 gen` run from that
 clone produces an application with no per-environment config files. Confirmed
 by generating into a clean `git worktree`: the generated app has `config.yml`
 but no `environments/`.
 
 **Contradicts:** the skeleton's own `config.yml`, whose second line tells the
 user *"env-related settings should go to environments/$env.yml"*
-(share/skel/default/config.yml:2) — a file the generator cannot produce from a
-clean checkout. Note also that `share/.gitignore` is not meant to govern this
+([share/skel/default/config.yml:2](../../share/skel/default/config.yml#L2)) — a file the generator cannot produce from a
+clean checkout. Note also that [`share/.gitignore`](../../share/.gitignore) is not meant to govern this
 repository at all: it is shipped data, copied into the user's new application
-by `_check_git` (lib/Dancer2/CLI/Gen.pm:224), and its `sessions/`, `logs/`,
+by `_check_git` ([lib/Dancer2/CLI/Gen.pm:224](../../lib/Dancer2/CLI/Gen.pm#L224)), and its `sessions/`, `logs/`,
 `environments/` entries describe a *running Dancer2 app*. Living at
-`share/.gitignore` makes git apply it to this repo's own `share/` tree as a
+[`share/.gitignore`](../../share/.gitignore) makes git apply it to this repo's own `share/` tree as a
 side effect.
 
 **Action:** stop the shipped template from acting as a live ignore file — the
@@ -546,7 +546,7 @@ rather than the git index, so releases cut from a working copy that happens to
 have these files have been shipping them; the gap only shows in a fresh clone.
 
 **Pinned by:** Phase 15 — the subtest "the skeleton environment configs are not
-in git (known bug F14)" in t/e2e/cli/gen.t pins the ignore rule and the absence
+in git (known bug F14)" in [t/e2e/cli/gen.t](../../t/e2e/cli/gen.t) pins the ignore rule and the absence
 from the index. The two files are deliberately left out of that test's
 required-files list until this is fixed.
 
@@ -554,12 +554,12 @@ required-files list until this is fixed.
 
 **Severity:** serious
 
-**Where:** lib/Dancer2/CLI/Gen.pm:227 (`_check_git`)
+**Where:** [lib/Dancer2/CLI/Gen.pm:227](../../lib/Dancer2/CLI/Gen.pm#L227) (`_check_git`)
 
 **Behavior:** `dancer2 gen -a G::App --path DIR -d gapp -g` writes the whole
 application, then dies with *"Can't locate object method \"absolute\" via
 package \"DIR/gapp\" (perhaps you forgot to load \"DIR/gapp\"?) at
-lib/Dancer2/CLI/Gen.pm line 227"* and exits 255. The same happens for `-r
+[lib/Dancer2/CLI/Gen.pm](../../lib/Dancer2/CLI/Gen.pm) line 227"* and exits 255. The same happens for `-r
 <uri>`, which implies `-g`. Reproduced against an unmodified checkout of this
 branch in a throwaway `git worktree`, so it is not an artifact of a dirty tree.
 The user is left with a generated application and a stack-shaped error instead
@@ -584,6 +584,6 @@ also interpolated into the die message on the next line, so it is wanted as a
 string there.
 
 **Pinned by:** nothing yet. Phase 15's tests never pass `-g`, so this is
-unguarded: `t/e2e/cli/gen.t` would stay green through a fix or a further
+unguarded: [`t/e2e/cli/gen.t`](../../t/e2e/cli/gen.t) would stay green through a fix or a further
 regression here. Worth a subtest once the behavior is settled, since the fix
 changes what a `-g` run does.
